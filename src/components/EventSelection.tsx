@@ -296,12 +296,12 @@ const EventSelection: React.FC<EventSelectionProps> = ({
 
                         <EventDescription>{event.description}</EventDescription>
 
-                        <EventDetails>
+                        {/* <EventDetails>
                             <EventDuration>{event.duration}</EventDuration>
                             <EventDifficulty style={{ color: getDifficultyColor(event.difficulty) }}>
                                 {event.difficulty}
                             </EventDifficulty>
-                        </EventDetails>
+                        </EventDetails> */}
                     </EventCard>
                 ))}
             </EventsGrid>
@@ -314,6 +314,7 @@ const EventSelection: React.FC<EventSelectionProps> = ({
 };
 
 export default EventSelection;
+
 
 
 
