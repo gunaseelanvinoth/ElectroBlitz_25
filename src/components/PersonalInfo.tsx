@@ -212,9 +212,9 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate }) => {
         '2nd Year',
         '3rd Year',
         '4th Year',
-        '5th Year (Dual Degree)',
-        'Post Graduate',
-        'Other'
+        // '5th Year (Dual Degree)',
+        // 'Post Graduate',
+        // 'Other'
     ];
 
     const departmentOptions = [
@@ -333,3 +333,4 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate }) => {
 };
 
 export default PersonalInfo;
+
