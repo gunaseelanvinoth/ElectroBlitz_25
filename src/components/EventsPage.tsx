@@ -306,9 +306,9 @@ interface Event {
     id: string;
     title: string;
     description: string;
-    duration: string;
-    difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-    prize: string;
+    // duration: string;
+    // difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+    // prize: string;
     icon: string;
     category: 'tech' | 'non-tech' | 'workshop';
     rules: string[];
@@ -455,7 +455,7 @@ const EventsPage: React.FC = () => {
             description: 'Hands-on frontend session. Venue: VLSI Lab.',
             // duration: '—',
             // difficulty: 'Beginner',
-            prize: 'Certificate',
+            // prize: 'Certificate',
             icon: '🎨',
             category: 'workshop',
             rules: [
@@ -468,7 +468,7 @@ const EventsPage: React.FC = () => {
             description: 'Assemble and learn PCB basics. Venue: Microwave Lab.',
             // duration: '—',
             // difficulty: 'Beginner',
-            prize: 'Certificate',
+            // prize: 'Certificate',
             icon: '🛠️',
             category: 'workshop',
             rules: [
@@ -481,7 +481,7 @@ const EventsPage: React.FC = () => {
             description: 'Explore EDA tools. Venue: 3rd Floor Lab.',
             // duration: '—',
             // difficulty: 'Intermediate',
-            prize: 'Certificate',
+            // prize: 'Certificate',
             icon: '🧩',
             category: 'workshop',
             rules: [
@@ -609,5 +609,6 @@ const EventsPage: React.FC = () => {
 };
 
 export default EventsPage;
+
 
 
