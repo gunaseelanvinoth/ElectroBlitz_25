@@ -179,14 +179,14 @@ const EventDescription = styled.p`
   margin-bottom: 1.5rem;
 `;
 
-const EventDetails = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-`;
+// const EventDetails = styled.div`
+//   display: flex;
+//   justify-content: space-between;
+//   align-items: center;
+//   margin-bottom: 1.5rem;
+//   flex-wrap: wrap;
+//   gap: 0.5rem;
+// `;
 
 // const EventDetail = styled.div<{ type: 'duration' | 'difficulty' | 'prize' }>`
 //   padding: 0.5rem 1rem;
@@ -609,4 +609,5 @@ const EventsPage: React.FC = () => {
 };
 
 export default EventsPage;
+
 
