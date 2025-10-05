@@ -192,8 +192,6 @@ interface Event {
     id: string;
     title: string;
     description: string;
-    duration: string;
-    difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
     icon: string;
     category: 'tech' | 'non-tech' | 'workshop';
 }
@@ -323,4 +321,5 @@ const EventSelection: React.FC<EventSelectionProps> = ({
 };
 
 export default EventSelection;
+
 
