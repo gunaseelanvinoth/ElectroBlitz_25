@@ -214,21 +214,21 @@ const EventSelection: React.FC<EventSelectionProps> = ({
 
     const events: Event[] = [
         // Technical
-        { id: 'idea-presentation', title: 'Idea Presentation', description: 'Venue: Microprocessor Lab. Team: 2 members.', duration: '—', difficulty: 'Intermediate', icon: '💡', category: 'tech' },
-        { id: 'tech-debate', title: 'Tech Debate', description: 'Venue: Communication Lab.', duration: '—', difficulty: 'Intermediate', icon: '🗣️', category: 'tech' },
-        { id: 'circuit-debugging', title: 'Circuit Debugging', description: 'Venues: Hall No 915, Electronics Lab. Team: 2.', duration: '—', difficulty: 'Intermediate', icon: '🔧', category: 'tech' },
-        { id: 'code-debugging', title: 'Code Debugging', description: 'Venues: Hall No 914, DSP Lab.', duration: '—', difficulty: 'Intermediate', icon: '🐞', category: 'tech' },
-        { id: 'electrathon', title: 'Electrathon', description: 'Venue: Project Corridor. Team: 3-4.', duration: '—', difficulty: 'Advanced', icon: '⚡', category: 'tech' },
+        { id: 'idea-presentation', title: 'Idea Presentation', description: 'Venue: Microprocessor Lab. Team: 2 members.',  icon: '💡', category: 'tech' },
+        { id: 'tech-debate', title: 'Tech Debate', description: 'Venue: Communication Lab.',  icon: '🗣️', category: 'tech' },
+        { id: 'circuit-debugging', title: 'Circuit Debugging', description: 'Venues: Hall No 915, Electronics Lab. Team: 2.', icon: '🔧', category: 'tech' },
+        { id: 'code-debugging', title: 'Code Debugging', description: 'Venues: Hall No 914, DSP Lab.', icon: '🐞', category: 'tech' },
+        { id: 'electrathon', title: 'Electrathon', description: 'Venue: Project Corridor. Team: 3-4.',  icon: '⚡', category: 'tech' },
 
         // Non-Technical
-        { id: 'dugout-deals', title: 'The Dugout Deals', description: 'Venue: 916 or APJ Hall. Team: 3-4.', duration: '—', difficulty: 'Beginner', icon: '🤝', category: 'non-tech' },
-        { id: 'connections', title: 'Connections', description: 'Venues: Hall No 922 and 923. Team: 2.', duration: '—', difficulty: 'Beginner', icon: '🔗', category: 'non-tech' },
-        { id: 'case-study', title: 'Case Study', description: 'Venues: Hall No 925 and 923. Team: 2.', duration: '—', difficulty: 'Intermediate', icon: '📊', category: 'non-tech' },
+        { id: 'dugout-deals', title: 'The Dugout Deals', description: 'Venue: 916 or APJ Hall. Team: 3-4.', icon: '🤝', category: 'non-tech' },
+        { id: 'connections', title: 'Connections', description: 'Venues: Hall No 922 and 923. Team: 2.',  icon: '🔗', category: 'non-tech' },
+        { id: 'case-study', title: 'Case Study', description: 'Venues: Hall No 925 and 923. Team: 2.',  icon: '📊', category: 'non-tech' },
 
         // Workshops
-        { id: 'frontend', title: 'Frontend', description: 'Venue: VLSI Lab.', duration: '—', difficulty: 'Beginner', icon: '🎨', category: 'workshop' },
-        { id: 'pcb-assembling', title: 'PCB Assembling', description: 'Venue: Microwave Lab.', duration: '—', difficulty: 'Beginner', icon: '🛠️', category: 'workshop' },
-        { id: 'eda-tools', title: 'EDA Tools', description: 'Venue: 3rd Floor Lab.', duration: '—', difficulty: 'Intermediate', icon: '🧩', category: 'workshop' }
+        { id: 'frontend', title: 'Frontend', description: 'Venue: VLSI Lab.',  icon: '🎨', category: 'workshop' },
+        { id: 'pcb-assembling', title: 'PCB Assembling', description: 'Venue: Microwave Lab.', icon: '🛠️', category: 'workshop' },
+        { id: 'eda-tools', title: 'EDA Tools', description: 'Venue: 3rd Floor Lab.',  icon: '🧩', category: 'workshop' }
     ];
 
     useEffect(() => {
@@ -323,3 +323,4 @@ const EventSelection: React.FC<EventSelectionProps> = ({
 };
 
 export default EventSelection;
+
