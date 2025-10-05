@@ -188,28 +188,28 @@ const EventDetails = styled.div`
   gap: 0.5rem;
 `;
 
-const EventDetail = styled.div<{ type: 'duration' | 'difficulty' | 'prize' }>`
-  padding: 0.5rem 1rem;
-  border-radius: 15px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  background: ${props => {
-        switch (props.type) {
-            case 'duration': return 'rgba(0, 212, 255, 0.2)';
-            case 'difficulty': return 'rgba(255, 0, 255, 0.2)';
-            case 'prize': return 'rgba(255, 170, 0, 0.2)';
-            default: return 'rgba(255, 255, 255, 0.1)';
-        }
-    }};
-  color: ${props => {
-        switch (props.type) {
-            case 'duration': return '#00d4ff';
-            case 'difficulty': return '#ff00ff';
-            case 'prize': return '#ffaa00';
-            default: return '#ffffff';
-        }
-    }};
-`;
+// const EventDetail = styled.div<{ type: 'duration' | 'difficulty' | 'prize' }>`
+//   padding: 0.5rem 1rem;
+//   border-radius: 15px;
+//   font-size: 0.9rem;
+//   font-weight: 600;
+//   background: ${props => {
+//         switch (props.type) {
+//             case 'duration': return 'rgba(0, 212, 255, 0.2)';
+//             case 'difficulty': return 'rgba(255, 0, 255, 0.2)';
+//             case 'prize': return 'rgba(255, 170, 0, 0.2)';
+//             default: return 'rgba(255, 255, 255, 0.1)';
+//         }
+//     }};
+//   color: ${props => {
+//         switch (props.type) {
+//             case 'duration': return '#00d4ff';
+//             case 'difficulty': return '#ff00ff';
+//             case 'prize': return '#ffaa00';
+//             default: return '#ffffff';
+//         }
+//     }};
+// `;
 
 const EventRules = styled.div`
   background: rgba(0, 0, 0, 0.3);
@@ -339,9 +339,9 @@ const EventsPage: React.FC = () => {
             id: 'idea-presentation',
             title: 'Idea Presentation',
             description: 'Present innovative ideas. Venue: Microprocessor Lab. Team of 2 members.',
-            duration: '—',
-            difficulty: 'Intermediate',
-            prize: '—',
+            // duration: '—',
+            // difficulty: 'Intermediate',
+            // prize: '—',
             icon: '💡',
             category: 'tech',
             rules: [
@@ -353,9 +353,9 @@ const EventsPage: React.FC = () => {
             id: 'tech-debate',
             title: 'Tech Debate',
             description: 'Debate current tech topics. Venue: Communication Lab.',
-            duration: '—',
-            difficulty: 'Intermediate',
-            prize: '—',
+            // duration: '—',
+            // difficulty: 'Intermediate',
+            // prize: '—',
             icon: '🗣️',
             category: 'tech',
             rules: [
@@ -366,9 +366,9 @@ const EventsPage: React.FC = () => {
             id: 'circuit-debugging',
             title: 'Circuit Debugging',
             description: 'Find and fix circuit issues. Venues: Hall No 915, Electronics Lab. Team of 2.',
-            duration: '—',
-            difficulty: 'Intermediate',
-            prize: '—',
+            // duration: '—',
+            // difficulty: 'Intermediate',
+            // prize: '—',
             icon: '🔧',
             category: 'tech',
             rules: [
@@ -380,9 +380,9 @@ const EventsPage: React.FC = () => {
             id: 'code-debugging',
             title: 'Code Debugging',
             description: 'Debug code efficiently. Venues: Hall No 914, DSP Lab.',
-            duration: '—',
-            difficulty: 'Intermediate',
-            prize: '—',
+            // duration: '—',
+            // difficulty: 'Intermediate',
+            // prize: '—',
             icon: '🐞',
             category: 'tech',
             rules: [
@@ -393,9 +393,9 @@ const EventsPage: React.FC = () => {
             id: 'electrathon',
             title: 'Electrathon',
             description: 'Team challenge in electronics. Venue: Project Corridor. Team of 3-4.',
-            duration: '—',
-            difficulty: 'Advanced',
-            prize: '—',
+            // duration: '—',
+            // difficulty: 'Advanced',
+            // prize: '—',
             icon: '⚡',
             category: 'tech',
             rules: [
@@ -409,9 +409,9 @@ const EventsPage: React.FC = () => {
             id: 'dugout-deals',
             title: 'The Dugout Deals',
             description: 'Fun team event. Venue: 916 or APJ Hall. Team of 3-4.',
-            duration: '—',
-            difficulty: 'Beginner',
-            prize: '—',
+            // duration: '—',
+            // difficulty: 'Beginner',
+            // prize: '—',
             icon: '🤝',
             category: 'non-tech',
             rules: [
@@ -423,9 +423,9 @@ const EventsPage: React.FC = () => {
             id: 'connections',
             title: 'Connections',
             description: 'Classic connections game. Venues: Hall No 922 and 923. Team of 2.',
-            duration: '—',
-            difficulty: 'Beginner',
-            prize: '—',
+            // duration: '—',
+            // difficulty: 'Beginner',
+            // prize: '—',
             icon: '🔗',
             category: 'non-tech',
             rules: [
@@ -437,9 +437,9 @@ const EventsPage: React.FC = () => {
             id: 'case-study',
             title: 'Case Study',
             description: 'Analyze and present solutions. Venues: Hall No 925 and 923. Team of 2.',
-            duration: '—',
-            difficulty: 'Intermediate',
-            prize: '—',
+            // duration: '—',
+            // difficulty: 'Intermediate',
+            // prize: '—',
             icon: '📊',
             category: 'non-tech',
             rules: [
@@ -453,8 +453,8 @@ const EventsPage: React.FC = () => {
             id: 'frontend',
             title: 'Frontend',
             description: 'Hands-on frontend session. Venue: VLSI Lab.',
-            duration: '—',
-            difficulty: 'Beginner',
+            // duration: '—',
+            // difficulty: 'Beginner',
             prize: 'Certificate',
             icon: '🎨',
             category: 'workshop',
@@ -466,8 +466,8 @@ const EventsPage: React.FC = () => {
             id: 'pcb-assembling',
             title: 'PCB Assembling',
             description: 'Assemble and learn PCB basics. Venue: Microwave Lab.',
-            duration: '—',
-            difficulty: 'Beginner',
+            // duration: '—',
+            // difficulty: 'Beginner',
             prize: 'Certificate',
             icon: '🛠️',
             category: 'workshop',
@@ -479,8 +479,8 @@ const EventsPage: React.FC = () => {
             id: 'eda-tools',
             title: 'EDA Tools',
             description: 'Explore EDA tools. Venue: 3rd Floor Lab.',
-            duration: '—',
-            difficulty: 'Intermediate',
+            // duration: '—',
+            // difficulty: 'Intermediate',
             prize: 'Certificate',
             icon: '🧩',
             category: 'workshop',
@@ -494,14 +494,14 @@ const EventsPage: React.FC = () => {
         ? events
         : events.filter(event => event.category === activeFilter);
 
-    const getDifficultyColor = (difficulty: string) => {
-        switch (difficulty) {
-            case 'Beginner': return '#00ff88';
-            case 'Intermediate': return '#ffaa00';
-            case 'Advanced': return '#ff4444';
-            default: return '#aaaaaa';
-        }
-    };
+    // const getDifficultyColor = (difficulty: string) => {
+    //     switch (difficulty) {
+    //         case 'Beginner': return '#00ff88';
+    //         case 'Intermediate': return '#ffaa00';
+    //         case 'Advanced': return '#ff4444';
+    //         default: return '#aaaaaa';
+    //     }
+    // };
 
     return (
         <EventsContainer>
@@ -552,13 +552,13 @@ const EventsPage: React.FC = () => {
 
                             <EventDescription>{event.description}</EventDescription>
 
-                            <EventDetails>
+                            {/* <EventDetails>
                                 <EventDetail type="duration">{event.duration}</EventDetail>
                                 <EventDetail type="difficulty" style={{ color: getDifficultyColor(event.difficulty) }}>
                                     {event.difficulty}
                                 </EventDetail>
                                 <EventDetail type="prize">{event.prize}</EventDetail>
-                            </EventDetails>
+                            </EventDetails> */}
 
                             <EventRules>
                                 <RulesTitle>Rules & Guidelines</RulesTitle>
@@ -609,3 +609,4 @@ const EventsPage: React.FC = () => {
 };
 
 export default EventsPage;
+
