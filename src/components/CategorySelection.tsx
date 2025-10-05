@@ -162,7 +162,7 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
                     >
                         <CategoryIcon>{category.icon}</CategoryIcon>
                         <CategoryTitle>{category.title}</CategoryTitle>
-                        <CategoryDescription>{category.description}</CategoryDescription>
+                        {/* <CategoryDescription>{category.description}</CategoryDescription> */}
                         <EventCount>{category.eventCount}</EventCount>
                     </CategoryCard>
                 ))}
@@ -172,4 +172,5 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
 };
 
 export default CategorySelection;
+
 
