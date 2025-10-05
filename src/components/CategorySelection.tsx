@@ -128,21 +128,21 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
             title: 'Technical Events',
             // description: 'Coding competitions, hackathons, robotics, and cutting-edge technology challenges',
             icon: '⚡',
-            eventCount: '25+ Events'
+            // eventCount: '25+ Events'
         },
         {
             id: 'non-tech' as const,
             title: 'Non-Technical Events',
             // description: 'Cultural events, management games, quizzes, and creative competitions',
             icon: '🎨',
-            eventCount: '15+ Events'
+            // eventCount: '15+ Events'
         },
         {
             id: 'workshop' as const,
             title: 'Workshops',
             // description: 'Hands-on learning sessions with industry experts and skill development',
             icon: '🔧',
-            eventCount: '10+ Workshops'
+            // eventCount: '10+ Workshops'
         }
     ];
 
@@ -163,7 +163,7 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
                         <CategoryIcon>{category.icon}</CategoryIcon>
                         <CategoryTitle>{category.title}</CategoryTitle>
                          {/* <CategoryDescription>{category.description}</CategoryDescription>  */}
-                        <EventCount>{category.eventCount}</EventCount>
+                        {/* <EventCount>{category.eventCount}</EventCount> */}
                     </CategoryCard>
                 ))}
             </CategoryGrid>
@@ -172,6 +172,7 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
 };
 
 export default CategorySelection;
+
 
 
 
