@@ -245,14 +245,7 @@ const EventSelection: React.FC<EventSelectionProps> = ({
         }
     };
 
-    const getDifficultyColor = (difficulty: string) => {
-        switch (difficulty) {
-            case 'Beginner': return '#00ff88';
-            case 'Intermediate': return '#ffaa00';
-            case 'Advanced': return '#ff4444';
-            default: return '#aaaaaa';
-        }
-    };
+  
 
     return (
         <EventContainer>
@@ -321,5 +314,6 @@ const EventSelection: React.FC<EventSelectionProps> = ({
 };
 
 export default EventSelection;
+
 
 
