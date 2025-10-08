@@ -140,6 +140,7 @@ interface PersonalInfoData {
     college: string;
     year: string;
     department: string;
+    section: string;
 }
 
 interface PersonalInfoProps {
@@ -155,11 +156,18 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate }) => {
 
         switch (name) {
             case 'firstName':
-            case 'lastName':
                 if (!value.trim()) {
                     newErrors[name] = 'This field is required';
                 } else if (value.trim().length < 2) {
                     newErrors[name] = 'Must be at least 2 characters';
+                } else {
+                    delete newErrors[name];
+                }
+                break;
+
+            case 'lastName':
+                if (!value.trim()) {
+                    newErrors[name] = 'This field is required';
                 } else {
                     delete newErrors[name];
                 }
@@ -190,6 +198,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate }) => {
             case 'college':
             case 'year':
             case 'department':
+            case 'section':
                 if (!value.trim()) {
                     newErrors[name] = 'This field is required';
                 } else {
@@ -326,6 +335,23 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate }) => {
                         ))}
                     </Select>
                     {errors.department && <ErrorMessage>{errors.department}</ErrorMessage>}
+                </FullWidthGroup>
+
+                <FullWidthGroup>
+                    <Label htmlFor="section">Section *</Label>
+                    <Select
+                        id="section"
+                        value={data.section}
+                        onChange={(e) => handleChange('section', e.target.value)}
+                        hasError={!!errors.section}
+                    >
+                        <option value="">Select your section</option>
+                        <option value="A">Section A</option>
+                        <option value="B">Section B</option>
+                        <option value="C">Section C</option>
+                        <option value="D">Section D</option>
+                    </Select>
+                    {errors.section && <ErrorMessage>{errors.section}</ErrorMessage>}
                 </FullWidthGroup>
             </FormGrid>
         </FormContainer>

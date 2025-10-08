@@ -155,6 +155,21 @@ const Description = styled.p`
   }
 `;
 
+const PosterImage = styled.img`
+  max-width: 100%;
+  height: auto;
+  border-radius: 15px;
+  margin: 2rem 0;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  animation: ${fadeInUp} 1s ease-out 0.8s both;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0, 212, 255, 0.2);
+  }
+`;
+
 const CTAButton = styled(Link)`
   display: inline-block;
   background: linear-gradient(45deg, #00d4ff, #ff00ff);
@@ -295,6 +310,11 @@ const LandingPage: React.FC = () => {
                     Experience cutting-edge technology, innovative workshops, and
                     connect with like-minded individuals in the world of electronics and communication.
                 </Description>
+
+                <PosterImage 
+                    src="/assets/poster.jpeg" 
+                    alt="ElectroBlitz 2025 Poster" 
+                />
 
                 <CTAButton to="/register">
                     Register Now

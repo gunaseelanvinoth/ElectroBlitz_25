@@ -177,6 +177,20 @@ const SelectionInfo = styled.div`
   margin-top: 1rem;
 `;
 
+const ScannerImage = styled.img`
+  max-width: 100%;
+  height: auto;
+  border-radius: 15px;
+  margin: 2rem 0;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0, 212, 255, 0.2);
+  }
+`;
+
 const MaxEventsWarning = styled.div`
   background: rgba(255, 193, 7, 0.1);
   border: 1px solid rgba(255, 193, 7, 0.3);
@@ -305,6 +319,14 @@ const EventSelection: React.FC<EventSelectionProps> = ({
                     </EventCard>
                 ))}
             </EventsGrid>
+
+            {/* Show scanner image for workshop events */}
+            {activeTab === 'workshop' && (
+                <ScannerImage 
+                    src="/assets/scanner.jpeg" 
+                    alt="Workshop Scanner" 
+                />
+            )}
 
             <SelectionInfo>
                 Selected: {selectedEvents.length}/{maxEvents} events

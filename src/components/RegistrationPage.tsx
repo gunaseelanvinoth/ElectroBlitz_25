@@ -151,6 +151,7 @@ export interface FormData {
         college: string;
         year: string;
         department: string;
+        section: string;
     };
     selectedEvents: string[];
     additionalInfo: {
@@ -172,7 +173,8 @@ const RegistrationPage: React.FC = () => {
             phone: '',
             college: '',
             year: '',
-            department: ''
+            department: '',
+            section: ''
         },
         selectedEvents: [],
         additionalInfo: {
@@ -223,6 +225,7 @@ const RegistrationPage: React.FC = () => {
                             college: string;
                             year: string;
                             department: string;
+                            section: string;
                         }) => updateFormData({ personalInfo })}
                     />
                 );

@@ -369,6 +369,10 @@ const ReviewAndSubmit: React.FC<ReviewAndSubmitProps> = ({ formData, onUpdate })
                         <InfoLabel>Department</InfoLabel>
                         <InfoValue>{formData.personalInfo.department}</InfoValue>
                     </InfoItem>
+                    <InfoItem>
+                        <InfoLabel>Section</InfoLabel>
+                        <InfoValue>{formData.personalInfo.section}</InfoValue>
+                    </InfoItem>
                 </InfoGrid>
             </Section>
 

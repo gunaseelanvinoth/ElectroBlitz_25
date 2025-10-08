@@ -417,6 +417,7 @@ const AdminDashboard: React.FC = () => {
                                 <TableHeader>Name</TableHeader>
                                 <TableHeader>Email</TableHeader>
                                 <TableHeader>College</TableHeader>
+                                <TableHeader>Section</TableHeader>
                                 <TableHeader>Category</TableHeader>
                                 <TableHeader>Events</TableHeader>
                                 <TableHeader>Accommodation</TableHeader>
@@ -430,6 +431,7 @@ const AdminDashboard: React.FC = () => {
                                     </TableCell>
                                     <TableCell>{registration.personalInfo.email}</TableCell>
                                     <TableCell>{registration.personalInfo.college}</TableCell>
+                                    <TableCell>{registration.personalInfo.section}</TableCell>
                                     <TableCell>{registration.category}</TableCell>
                                     <TableCell>{registration.selectedEvents.length} events</TableCell>
                                     <TableCell>{registration.additionalInfo.accommodation ? 'Yes' : 'No'}</TableCell>
