@@ -241,9 +241,9 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate, category = 
         const isTeamCategory = category === 'tech' || category === 'non-tech';
         if (!isTeamCategory) return null;
 
-        const clampedSize = Math.max(1, Math.min(3, teamSize));
+        const clampedSize = Math.max(1, Math.min(4, teamSize));
         const handleSizeChange = (value: number) => {
-            const size = Math.max(1, Math.min(3, value));
+            const size = Math.max(1, Math.min(4, value));
             onTeamSizeChange && onTeamSizeChange(size);
             if (onTeamMembersChange) {
                 const needed = Math.max(0, size - 1);
@@ -266,7 +266,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate, category = 
         return (
             <>
                 <FullWidthGroup>
-                    <Label>Team Size (1–3)</Label>
+                    <Label>Team Size (1–4)</Label>
                     <Select
                         value={clampedSize}
                         onChange={(e) => handleSizeChange(Number(e.target.value))}
@@ -274,6 +274,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate, category = 
                         <option value={1}>1</option>
                         <option value={2}>2</option>
                         <option value={3}>3</option>
+                        <option value={4}>4</option>
                     </Select>
                 </FullWidthGroup>
 

@@ -250,6 +250,76 @@ const LoadingSpinner = styled.div`
   }
 `;
 
+const LoginContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+`;
+
+const LoginCard = styled.div`
+  width: 100%;
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem;
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  animation: ${fadeInUp} 0.6s ease-out;
+`;
+
+const LoginTitle = styled.h2`
+  margin: 0 0 0.5rem 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: linear-gradient(45deg, #00d4ff, #ff00ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+`;
+
+const LoginSubtitle = styled.p`
+  margin: 0 0 1.25rem 0;
+  color: #aaaaaa;
+`;
+
+const LoginInput = styled.input`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+  &:focus {
+    outline: none;
+    border-color: #00d4ff;
+    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+  }
+`;
+
+const LoginButton = styled.button`
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(45deg, #00d4ff, #ff00ff);
+  color: #fff;
+`;
+
+const LoginError = styled.div`
+  color: #ff6b6b;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+`;
+
 interface SupabaseRegistration {
     id: string;
     created_at: string;
@@ -277,11 +347,40 @@ interface SupabaseRegistration {
 }
 
 const AdminDashboard: React.FC = () => {
+  const [isAuthed, setIsAuthed] = useState<boolean>(false);
+  const [password, setPassword] = useState<string>('');
+  const [authError, setAuthError] = useState<string>('');
     const [registrations, setRegistrations] = useState<FormData[]>([]);
     const [filteredRegistrations, setFilteredRegistrations] = useState<FormData[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
+
+  useEffect(() => {
+    const authed = typeof window !== 'undefined' && sessionStorage.getItem('eb_admin_authed') === 'true';
+    if (authed) setIsAuthed(true);
+  }, []);
+
+  const getExpectedPassword = () => {
+    const envPass = process.env.REACT_APP_ADMIN_PASSWORD;
+    return envPass && envPass.length > 0 ? envPass : 'sonaece@123';
+  };
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    if (password === getExpectedPassword()) {
+      setIsAuthed(true);
+      sessionStorage.setItem('eb_admin_authed', 'true');
+    } else {
+      setAuthError('Incorrect password');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthed(false);
+    sessionStorage.removeItem('eb_admin_authed');
+  };
 
     const downloadFile = (fileData: { name: string; url: string; type: string }) => {
         const link = document.createElement('a');
@@ -407,14 +506,35 @@ const AdminDashboard: React.FC = () => {
         }, 500);
     };
 
-    const stats = {
+  const stats = {
         totalRegistrations: registrations.length,
         techRegistrations: registrations.filter(r => r.category === 'tech').length,
         nonTechRegistrations: registrations.filter(r => r.category === 'non-tech').length,
         workshopRegistrations: registrations.filter(r => r.category === 'workshop').length
     };
 
+  if (!isAuthed) {
     return (
+      <LoginContainer>
+        <LoginCard>
+          <LoginTitle>Admin Access</LoginTitle>
+          <LoginSubtitle>Enter the admin password to continue</LoginSubtitle>
+          {authError && <LoginError>{authError}</LoginError>}
+          <form onSubmit={handleLogin}>
+            <LoginInput
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <LoginButton type="submit">Enter Dashboard</LoginButton>
+          </form>
+        </LoginCard>
+      </LoginContainer>
+    );
+  }
+
+  return (
         <AdminContainer>
             <AdminContent>
                 <Header>
@@ -422,7 +542,10 @@ const AdminDashboard: React.FC = () => {
                     <Subtitle>Manage ElectroBlitz Registrations</Subtitle>
                 </Header>
 
-                <SupabaseTest />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <SupabaseTest />
+          <button onClick={handleLogout} style={{ background: 'transparent', color: '#aaaaaa', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 0.9rem', borderRadius: 8, cursor: 'pointer' }}>Logout</button>
+        </div>
 
                 <StatsGrid>
                     <StatCard>

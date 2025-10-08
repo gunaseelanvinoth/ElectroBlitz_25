@@ -85,7 +85,7 @@ const ElectrathonPage: React.FC = () => {
       <ContentCard>
         <Title>Electrathon</Title>
         <Subtitle>
-          The flagship 24-hour build-and-innovate challenge of ElectroBlitz. Showcase your skills in
+          The flagship 4-hour build-and-innovate challenge of ElectroBlitz. Showcase your skills in
           electronics, embedded systems, and innovation. This is a unique track with its own rules
           and registration.
         </Subtitle>
@@ -93,11 +93,11 @@ const ElectrathonPage: React.FC = () => {
         <Grid>
           <InfoBox>
             <Label>Format</Label>
-            <div>Non-stop 24-hour engineering sprint (prototype + demo).</div>
+            <div>Non-stop 4-hour engineering sprint.</div>
           </InfoBox>
           <InfoBox>
             <Label>Team Size</Label>
-            <div>3 members (fixed).</div>
+            <div> 3 to 4 members .</div>
           </InfoBox>
           <InfoBox>
             <Label>Eligibility</Label>
@@ -118,5 +118,6 @@ const ElectrathonPage: React.FC = () => {
 };
 
 export default ElectrathonPage;
+
 
 

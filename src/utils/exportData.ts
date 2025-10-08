@@ -12,6 +12,13 @@ export const exportToExcel = (data: FormData[], filename: string = 'electroblitz
         'College': registration.personalInfo.college,
         'Academic Year': registration.personalInfo.year,
         'Category': registration.category,
+        'Team Size': (registration.category === 'tech' || registration.category === 'non-tech') ? (registration.teamSize || 1) : '-',
+        'Team Members': (registration.category === 'tech' || registration.category === 'non-tech')
+            ? ([
+                `${registration.personalInfo.firstName} ${registration.personalInfo.lastName}`.trim(),
+                ...(registration.teamMembers || []).map(m => m.name).filter(Boolean)
+            ].join(', '))
+            : '-',
         'Selected Events': registration.selectedEvents.join(', '),
         'Dietary Requirements': registration.additionalInfo.dietaryRequirements || 'None',
         'Accommodation Required': registration.additionalInfo.accommodation ? 'Yes' : 'No',
@@ -36,6 +43,8 @@ export const exportToExcel = (data: FormData[], filename: string = 'electroblitz
         { wch: 30 },  // College
         { wch: 15 },  // Academic Year
         { wch: 15 },  // Category
+        { wch: 10 },  // Team Size
+        { wch: 40 },  // Team Members
         { wch: 40 },  // Selected Events
         { wch: 20 },  // Dietary Requirements
         { wch: 20 },  // Accommodation Required
@@ -74,6 +83,13 @@ export const exportToCSV = (data: FormData[], filename: string = 'electroblitz-r
         'College': registration.personalInfo.college,
         'Academic Year': registration.personalInfo.year,
         'Category': registration.category,
+        'Team Size': (registration.category === 'tech' || registration.category === 'non-tech') ? (registration.teamSize || 1) : '-',
+        'Team Members': (registration.category === 'tech' || registration.category === 'non-tech')
+            ? ([
+                `${registration.personalInfo.firstName} ${registration.personalInfo.lastName}`.trim(),
+                ...(registration.teamMembers || []).map(m => m.name).filter(Boolean)
+            ].join(', '))
+            : '-',
         'Selected Events': registration.selectedEvents.join(', '),
         'Dietary Requirements': registration.additionalInfo.dietaryRequirements || 'None',
         'Accommodation Required': registration.additionalInfo.accommodation ? 'Yes' : 'No',
