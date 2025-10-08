@@ -232,6 +232,50 @@ const LoadingSpinner = styled.div`
   }
 `;
 
+const FileInfo = styled.div`
+  background: rgba(0, 255, 136, 0.1);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const FileDetails = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const FileName = styled.div`
+  color: #00ff88;
+  font-weight: 600;
+  font-size: 1rem;
+`;
+
+const FileSize = styled.div`
+  color: #aaaaaa;
+  font-size: 0.9rem;
+`;
+
+const DownloadButton = styled.button`
+  background: linear-gradient(45deg, #00d4ff, #ff00ff);
+  color: #ffffff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 212, 255, 0.3);
+  }
+`;
+
 interface ReviewAndSubmitProps {
     formData: FormData;
     onUpdate: (updates: Partial<FormData>) => void;
@@ -242,6 +286,23 @@ const ReviewAndSubmit: React.FC<ReviewAndSubmitProps> = ({ formData, onUpdate })
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
     const { addRegistration } = useRegistrations();
     const navigate = useNavigate();
+
+    const formatFileSize = (bytes: number) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    const downloadFile = (fileData: { name: string; url: string; type: string }) => {
+        const link = document.createElement('a');
+        link.href = fileData.url;
+        link.download = fileData.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const eventTitles: { [key: string]: string } = {
         'hackathon': '24-Hour Hackathon',
@@ -267,18 +328,20 @@ const ReviewAndSubmit: React.FC<ReviewAndSubmitProps> = ({ formData, onUpdate })
         setSubmitStatus('idle');
 
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // Save registration data using context
-            addRegistration(formData);
-            console.log('Registration saved successfully:', formData);
-
-            setSubmitStatus('success');
-            // Briefly show success then navigate
-            setTimeout(() => {
-                navigate('/');
-            }, 1800);
+            // Save registration data using context (now with Supabase)
+            const result = await addRegistration(formData);
+            
+            if (result.success) {
+                console.log('Registration saved successfully to Supabase:', formData);
+                setSubmitStatus('success');
+                // Briefly show success then navigate
+                setTimeout(() => {
+                    navigate('/');
+                }, 1800);
+            } else {
+                console.error('Registration failed:', result.error);
+                setSubmitStatus('error');
+            }
         } catch (error) {
             console.error('Registration failed:', error);
             setSubmitStatus('error');
@@ -322,7 +385,7 @@ const ReviewAndSubmit: React.FC<ReviewAndSubmitProps> = ({ formData, onUpdate })
 
             {submitStatus === 'error' && (
                 <ErrorMessage>
-                    ❌ Registration failed. Please try again or contact support.
+                    ❌ Registration failed. Please check your internet connection and try again. If the problem persists, contact support.
                 </ErrorMessage>
             )}
 
@@ -388,6 +451,58 @@ const ReviewAndSubmit: React.FC<ReviewAndSubmitProps> = ({ formData, onUpdate })
                     ))}
                 </EventsList>
             </Section>
+
+            {(formData.category === 'tech' || formData.category === 'non-tech') && (
+                <Section>
+                    <SectionTitle>
+                        👥 Team Details
+                    </SectionTitle>
+                    <InfoGrid>
+                        <InfoItem>
+                            <InfoLabel>Team Size</InfoLabel>
+                            <InfoValue>{formData.teamSize || 1}</InfoValue>
+                        </InfoItem>
+                    </InfoGrid>
+                    {!!(formData.teamMembers && formData.teamMembers.length) && (
+                        <div style={{ marginTop: '1rem' }}>
+                            {formData.teamMembers.map((m, idx) => (
+                                <InfoGrid key={idx}>
+                                    <InfoItem>
+                                        <InfoLabel>Member {idx + 2} Name</InfoLabel>
+                                        <InfoValue>{m.name || '-'}</InfoValue>
+                                    </InfoItem>
+                                    <InfoItem>
+                                        <InfoLabel>Email</InfoLabel>
+                                        <InfoValue>{m.email || '-'}</InfoValue>
+                                    </InfoItem>
+                                    <InfoItem>
+                                        <InfoLabel>Phone</InfoLabel>
+                                        <InfoValue>{m.phone || '-'}</InfoValue>
+                                    </InfoItem>
+                                </InfoGrid>
+                            ))}
+                        </div>
+                    )}
+                </Section>
+            )}
+
+            {/* Show uploaded file if exists */}
+            {formData.uploadedFile && (
+                <Section>
+                    <SectionTitle>
+                        📎 Uploaded Document
+                    </SectionTitle>
+                    <FileInfo>
+                        <FileDetails>
+                            <FileName>{formData.uploadedFile.name}</FileName>
+                            <FileSize>{formatFileSize(formData.uploadedFile.size)}</FileSize>
+                        </FileDetails>
+                        <DownloadButton onClick={() => downloadFile(formData.uploadedFile!)}>
+                            Download
+                        </DownloadButton>
+                    </FileInfo>
+                </Section>
+            )}
 
             {/* <Section>
                 <SectionTitle>

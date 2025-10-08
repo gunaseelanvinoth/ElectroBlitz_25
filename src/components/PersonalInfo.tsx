@@ -146,9 +146,14 @@ interface PersonalInfoData {
 interface PersonalInfoProps {
     data: PersonalInfoData;
     onUpdate: (data: PersonalInfoData) => void;
+    category?: 'tech' | 'non-tech' | 'workshop' | '';
+    teamSize?: number;
+    onTeamSizeChange?: (size: number) => void;
+    teamMembers?: { name: string; email: string; phone: string }[];
+    onTeamMembersChange?: (members: { name: string; email: string; phone: string }[]) => void;
 }
 
-const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate }) => {
+const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate, category = '', teamSize = 1, onTeamSizeChange, teamMembers = [], onTeamMembersChange }) => {
     const [errors, setErrors] = React.useState<Partial<PersonalInfoData>>({});
 
     const validateField = (name: keyof PersonalInfoData, value: string) => {
@@ -231,6 +236,81 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate }) => {
         'EXE',
         'EVD'
     ];
+
+    const renderTeamControls = () => {
+        const isTeamCategory = category === 'tech' || category === 'non-tech';
+        if (!isTeamCategory) return null;
+
+        const clampedSize = Math.max(1, Math.min(3, teamSize));
+        const handleSizeChange = (value: number) => {
+            const size = Math.max(1, Math.min(3, value));
+            onTeamSizeChange && onTeamSizeChange(size);
+            if (onTeamMembersChange) {
+                const needed = Math.max(0, size - 1);
+                const next = [...teamMembers];
+                next.length = needed;
+                for (let i = 0; i < needed; i++) {
+                    next[i] = next[i] || { name: '', email: '', phone: '' };
+                }
+                onTeamMembersChange(next);
+            }
+        };
+
+        const handleMemberChange = (idx: number, field: 'name'|'email'|'phone', value: string) => {
+            if (!onTeamMembersChange) return;
+            const next = [...teamMembers];
+            next[idx] = { ...(next[idx] || { name: '', email: '', phone: '' }), [field]: value };
+            onTeamMembersChange(next);
+        };
+
+        return (
+            <>
+                <FullWidthGroup>
+                    <Label>Team Size (1–3)</Label>
+                    <Select
+                        value={clampedSize}
+                        onChange={(e) => handleSizeChange(Number(e.target.value))}
+                    >
+                        <option value={1}>1</option>
+                        <option value={2}>2</option>
+                        <option value={3}>3</option>
+                    </Select>
+                </FullWidthGroup>
+
+                {Array.from({ length: Math.max(0, clampedSize - 1) }).map((_, i) => (
+                    <>
+                        <FullWidthGroup key={`member-${i}`}>
+                            <Label>Member {i + 2} Name</Label>
+                            <Input
+                                type="text"
+                                value={teamMembers[i]?.name || ''}
+                                onChange={(e) => handleMemberChange(i, 'name', e.target.value)}
+                                placeholder={`Member ${i + 2} full name`}
+                            />
+                        </FullWidthGroup>
+                        <FormGroup>
+                            <Label>Member {i + 2} Email</Label>
+                            <Input
+                                type="email"
+                                value={teamMembers[i]?.email || ''}
+                                onChange={(e) => handleMemberChange(i, 'email', e.target.value)}
+                                placeholder="email@example.com"
+                            />
+                        </FormGroup>
+                        <FormGroup>
+                            <Label>Member {i + 2} Phone</Label>
+                            <Input
+                                type="tel"
+                                value={teamMembers[i]?.phone || ''}
+                                onChange={(e) => handleMemberChange(i, 'phone', e.target.value)}
+                                placeholder="10-digit phone"
+                            />
+                        </FormGroup>
+                    </>
+                ))}
+            </>
+        );
+    };
 
     return (
         <FormContainer>
@@ -354,6 +434,8 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate }) => {
                     {errors.section && <ErrorMessage>{errors.section}</ErrorMessage>}
                 </FullWidthGroup>
             </FormGrid>
+
+            {renderTeamControls()}
         </FormContainer>
     );
 };

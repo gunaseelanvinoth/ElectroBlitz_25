@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
+import FileUpload from './FileUpload';
 
 const fadeInUp = keyframes`
   from {
@@ -214,12 +215,16 @@ interface EventSelectionProps {
     category: 'tech' | 'non-tech' | 'workshop' | '';
     selectedEvents: string[];
     onEventsChange: (events: string[]) => void;
+    onFileUpload?: (file: File | null) => void;
+    uploadedFile?: File | null;
 }
 
 const EventSelection: React.FC<EventSelectionProps> = ({
     category,
     selectedEvents,
-    onEventsChange
+    onEventsChange,
+    onFileUpload,
+    uploadedFile
 }) => {
     const [activeTab, setActiveTab] = useState<'tech' | 'non-tech' | 'workshop'>('tech');
     const maxEvents = 5;
@@ -325,6 +330,14 @@ const EventSelection: React.FC<EventSelectionProps> = ({
                 <ScannerImage 
                     src="/assets/scanner.jpeg" 
                     alt="Workshop Scanner" 
+                />
+            )}
+
+            {/* File upload for workshop events */}
+            {activeTab === 'workshop' && onFileUpload && (
+                <FileUpload
+                    onFileSelect={onFileUpload}
+                    selectedFile={uploadedFile || null}
                 />
             )}
 

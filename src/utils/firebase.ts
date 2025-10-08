@@ -1,21 +1,10 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { createClient } from '@supabase/supabase-js';
 
-// Firebase configuration
-// Replace these with your actual Firebase config values
-const firebaseConfig = {
-    apiKey: "your-api-key-here",
-    authDomain: "your-project.firebaseapp.com",
-    projectId: "your-project-id",
-    storageBucket: "your-project.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "your-app-id"
-};
+// Supabase configuration
+const supabaseUrl = 'https://iidtgymrlfuznnccbbyu.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlpZHRneW1ybGZ1em5uY2NiYnl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MDA1NjcsImV4cCI6MjA3NTQ3NjU2N30.HmDPnu5sYscIwJ1VbDn4oV50A35a1vI0KQZhfswfJFs';
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Create Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Initialize Firestore
-export const db = getFirestore(app);
-
-export default app;
+export default supabase;

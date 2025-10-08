@@ -142,6 +142,8 @@ const NavButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
 `;
 
 export interface FormData {
+    id?: string;
+    registrationDate?: string;
     category: 'tech' | 'non-tech' | 'workshop' | '';
     personalInfo: {
         firstName: string;
@@ -160,6 +162,14 @@ export interface FormData {
         emergencyContact: string;
         emergencyPhone: string;
     };
+    uploadedFile?: {
+        name: string;
+        url: string;
+        size: number;
+        type: string;
+    };
+    teamSize?: number; // applies to tech/non-tech only
+    teamMembers?: { name: string; email: string; phone: string }[]; // members beyond personalInfo (Member 2..n)
 }
 
 const RegistrationPage: React.FC = () => {
@@ -182,8 +192,12 @@ const RegistrationPage: React.FC = () => {
             accommodation: false,
             emergencyContact: '',
             emergencyPhone: ''
-        }
+        },
+        uploadedFile: undefined,
+        teamSize: 1,
+        teamMembers: []
     });
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
     const totalSteps = 4;
     const progress = (currentStep / totalSteps) * 100;
@@ -202,6 +216,28 @@ const RegistrationPage: React.FC = () => {
 
     const updateFormData = (updates: Partial<FormData>) => {
         setFormData(prev => ({ ...prev, ...updates }));
+    };
+
+    const handleFileUpload = (file: File | null) => {
+        setUploadedFile(file);
+        if (file) {
+            // Convert file to base64 for storage
+            const reader = new FileReader();
+            reader.onload = () => {
+                const base64String = reader.result as string;
+                updateFormData({
+                    uploadedFile: {
+                        name: file.name,
+                        url: base64String,
+                        size: file.size,
+                        type: file.type
+                    }
+                });
+            };
+            reader.readAsDataURL(file);
+        } else {
+            updateFormData({ uploadedFile: undefined });
+        }
     };
 
     const renderStep = () => {
@@ -227,6 +263,11 @@ const RegistrationPage: React.FC = () => {
                             department: string;
                             section: string;
                         }) => updateFormData({ personalInfo })}
+                        category={formData.category}
+                        teamSize={formData.teamSize}
+                        onTeamSizeChange={(size) => updateFormData({ teamSize: size })}
+                        teamMembers={formData.teamMembers}
+                        onTeamMembersChange={(members) => updateFormData({ teamMembers: members })}
                     />
                 );
             case 3:
@@ -235,6 +276,8 @@ const RegistrationPage: React.FC = () => {
                         category={formData.category}
                         selectedEvents={formData.selectedEvents}
                         onEventsChange={(selectedEvents: string[]) => updateFormData({ selectedEvents })}
+                        onFileUpload={handleFileUpload}
+                        uploadedFile={uploadedFile}
                     />
                 );
             case 4:

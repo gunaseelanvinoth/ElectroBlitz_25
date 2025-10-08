@@ -219,6 +219,15 @@ const Navigation: React.FC = () => {
                     </NavLink>
                     <NavLink>
                         <StyledLink
+                            to="/electrathon"
+                            isActive={location.pathname === '/electrathon'}
+                            onClick={closeMobileMenu}
+                        >
+                            Electrathon
+                        </StyledLink>
+                    </NavLink>
+                    <NavLink>
+                        <StyledLink
                             to="/about"
                             isActive={location.pathname === '/about'}
                             onClick={closeMobileMenu}

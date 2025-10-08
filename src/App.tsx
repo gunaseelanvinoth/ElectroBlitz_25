@@ -6,6 +6,7 @@ import RegistrationPage from './components/RegistrationPage';
 import EventsPage from './components/EventsPage';
 import AboutPage from './components/AboutPage';
 import AdminDashboard from './components/AdminDashboard';
+import ElectrathonPage from './components/ElectrathonPage';
 import Navigation from './components/Navigation';
 import ContactPage from './components/ContactPage';
 import Footer from './components/Footer';
@@ -27,6 +28,7 @@ function App() {
           <Navigation />
           <Routes>
             <Route path="/" element={<LandingPage />} />
+            <Route path="/electrathon" element={<ElectrathonPage />} />
             <Route path="/register" element={<RegistrationPage />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/about" element={<AboutPage />} />

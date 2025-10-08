@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { exportToExcel, exportToCSV, exportEventStatistics, exportCategoryToExcel } from '../utils/exportData';
 import { FormData } from './RegistrationPage';
-import { useRegistrations } from '../contexts/RegistrationContext';
+import { supabase } from '../utils/supabase';
+import SupabaseTest from './SupabaseTest';
 
 const fadeInUp = keyframes`
   from {
@@ -249,11 +250,113 @@ const LoadingSpinner = styled.div`
   }
 `;
 
+interface SupabaseRegistration {
+    id: string;
+    created_at: string;
+    category: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    college: string;
+    academic_year: string;
+    department: string;
+    section: string;
+    selected_events: string[];
+    dietary_requirements: string;
+    accommodation_required: boolean;
+    emergency_contact: string;
+    emergency_phone: string;
+    uploaded_file_name: string;
+    uploaded_file_url: string;
+    uploaded_file_size: number;
+    uploaded_file_type: string;
+    team_size: number | null;
+    team_members: any | null;
+    status: string;
+}
+
 const AdminDashboard: React.FC = () => {
-    const { registrations, clearRegistrations } = useRegistrations();
+    const [registrations, setRegistrations] = useState<FormData[]>([]);
     const [filteredRegistrations, setFilteredRegistrations] = useState<FormData[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isFetching, setIsFetching] = useState(true);
+
+    const downloadFile = (fileData: { name: string; url: string; type: string }) => {
+        const link = document.createElement('a');
+        link.href = fileData.url;
+        link.download = fileData.name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const formatFileSize = (bytes: number) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    // Fetch registrations from Supabase on component mount
+    useEffect(() => {
+        const fetchRegistrations = async () => {
+            try {
+                setIsFetching(true);
+                const { data, error } = await supabase
+                    .from('registrations')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error fetching registrations:', error);
+                    return;
+                }
+
+                // Convert Supabase data to FormData format
+                const convertedRegistrations: FormData[] = data.map((reg: SupabaseRegistration) => ({
+                    id: reg.id,
+                    registrationDate: reg.created_at,
+                    category: reg.category as 'tech' | 'non-tech' | 'workshop',
+                    personalInfo: {
+                        firstName: reg.first_name,
+                        lastName: reg.last_name,
+                        email: reg.email,
+                        phone: reg.phone,
+                        college: reg.college,
+                        year: reg.academic_year,
+                        department: reg.department,
+                        section: reg.section
+                    },
+                    selectedEvents: reg.selected_events,
+                    additionalInfo: {
+                        dietaryRequirements: reg.dietary_requirements || '',
+                        accommodation: reg.accommodation_required,
+                        emergencyContact: reg.emergency_contact || '',
+                        emergencyPhone: reg.emergency_phone || ''
+                    },
+                    uploadedFile: reg.uploaded_file_name ? {
+                        name: reg.uploaded_file_name,
+                        url: reg.uploaded_file_url,
+                        size: reg.uploaded_file_size,
+                        type: reg.uploaded_file_type
+                    } : undefined,
+                    teamSize: reg.team_size || undefined,
+                    teamMembers: Array.isArray(reg.team_members) ? reg.team_members : undefined
+                }));
+
+                setRegistrations(convertedRegistrations);
+            } catch (error) {
+                console.error('Error fetching registrations:', error);
+            } finally {
+                setIsFetching(false);
+            }
+        };
+
+        fetchRegistrations();
+    }, []);
 
     // Update filtered registrations when registrations or search term changes
     useEffect(() => {
@@ -318,6 +421,8 @@ const AdminDashboard: React.FC = () => {
                     <Title>Admin Dashboard</Title>
                     <Subtitle>Manage ElectroBlitz Registrations</Subtitle>
                 </Header>
+
+                <SupabaseTest />
 
                 <StatsGrid>
                     <StatCard>
@@ -391,13 +496,34 @@ const AdminDashboard: React.FC = () => {
                         </ActionButton>
                         <ActionButton
                             variant="secondary"
-                            onClick={() => {
+                            onClick={async () => {
                                 if (window.confirm('Are you sure you want to clear all registration data? This action cannot be undone.')) {
-                                    clearRegistrations();
+                                    try {
+                                        setIsLoading(true);
+                                        const { error } = await supabase
+                                            .from('registrations')
+                                            .delete()
+                                            .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+                                        
+                                        if (error) {
+                                            console.error('Error clearing registrations:', error);
+                                            alert('Failed to clear registrations. Please try again.');
+                                        } else {
+                                            setRegistrations([]);
+                                            setFilteredRegistrations([]);
+                                            alert('All registrations have been cleared successfully.');
+                                        }
+                                    } catch (error) {
+                                        console.error('Error clearing registrations:', error);
+                                        alert('Failed to clear registrations. Please try again.');
+                                    } finally {
+                                        setIsLoading(false);
+                                    }
                                 }
                             }}
-                            disabled={registrations.length === 0}
+                            disabled={registrations.length === 0 || isLoading}
                         >
+                            {isLoading && <LoadingSpinner />}
                             Clear All Data
                         </ActionButton>
                     </ButtonGrid>
@@ -411,34 +537,96 @@ const AdminDashboard: React.FC = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
 
-                    <Table>
-                        <thead>
-                            <tr>
-                                <TableHeader>Name</TableHeader>
-                                <TableHeader>Email</TableHeader>
-                                <TableHeader>College</TableHeader>
-                                <TableHeader>Section</TableHeader>
-                                <TableHeader>Category</TableHeader>
-                                <TableHeader>Events</TableHeader>
-                                <TableHeader>Accommodation</TableHeader>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredRegistrations.map((registration, index) => (
-                                <TableRow key={index}>
-                                    <TableCell>
-                                        {registration.personalInfo.firstName} {registration.personalInfo.lastName}
-                                    </TableCell>
-                                    <TableCell>{registration.personalInfo.email}</TableCell>
-                                    <TableCell>{registration.personalInfo.college}</TableCell>
-                                    <TableCell>{registration.personalInfo.section}</TableCell>
-                                    <TableCell>{registration.category}</TableCell>
-                                    <TableCell>{registration.selectedEvents.length} events</TableCell>
-                                    <TableCell>{registration.additionalInfo.accommodation ? 'Yes' : 'No'}</TableCell>
-                                </TableRow>
-                            ))}
-                        </tbody>
-                    </Table>
+                    {isFetching ? (
+                        <div style={{ textAlign: 'center', padding: '2rem', color: '#aaaaaa' }}>
+                            <LoadingSpinner />
+                            <div style={{ marginTop: '1rem' }}>Loading registrations from database...</div>
+                        </div>
+                    ) : (
+                        <Table>
+                            <thead>
+                                <tr>
+                                    <TableHeader>Name</TableHeader>
+                                    <TableHeader>Email</TableHeader>
+                                    <TableHeader>College</TableHeader>
+                                    <TableHeader>Section</TableHeader>
+                                    <TableHeader>Category</TableHeader>
+                                    <TableHeader>Events</TableHeader>
+                                    <TableHeader>Team</TableHeader>
+                                    <TableHeader>File</TableHeader>
+                                    <TableHeader>Accommodation</TableHeader>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredRegistrations.length === 0 ? (
+                                    <tr>
+                                        <TableCell colSpan={8} style={{ textAlign: 'center', padding: '2rem', color: '#aaaaaa' }}>
+                                            {searchTerm ? 'No registrations found matching your search.' : 'No registrations found.'}
+                                        </TableCell>
+                                    </tr>
+                                ) : (
+                                    filteredRegistrations.map((registration, index) => (
+                                        <TableRow key={registration.id || index}>
+                                            <TableCell>
+                                                {registration.personalInfo.firstName} {registration.personalInfo.lastName}
+                                            </TableCell>
+                                            <TableCell>{registration.personalInfo.email}</TableCell>
+                                            <TableCell>{registration.personalInfo.college}</TableCell>
+                                            <TableCell>{registration.personalInfo.section}</TableCell>
+                                            <TableCell>{registration.category}</TableCell>
+                                            <TableCell>
+                                                {(registration.category === 'tech' || registration.category === 'non-tech') ? (
+                                                    <div style={{ color: '#e8e8e8', fontSize: '0.9rem' }}>
+                                                        Size: {registration.teamSize || 1}
+                                                        {!!(registration.teamMembers && registration.teamMembers.length) && (
+                                                            <div style={{ color: '#aaaaaa', marginTop: '0.25rem' }}>
+                                                                {registration.teamMembers.map((m, i) => (
+                                                                    <div key={i}>M{ i + 2 }: {m.name || '-'} ({m.email || '-'})</div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span>-</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>{registration.selectedEvents.length} events</TableCell>
+                                            <TableCell>
+                                                {registration.uploadedFile ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                                        <div style={{ color: '#00ff88', fontSize: '0.9rem', fontWeight: '600' }}>
+                                                            {registration.uploadedFile.name}
+                                                        </div>
+                                                        <div style={{ color: '#aaaaaa', fontSize: '0.8rem' }}>
+                                                            {formatFileSize(registration.uploadedFile.size)}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => downloadFile(registration.uploadedFile!)}
+                                                            style={{
+                                                                background: 'linear-gradient(45deg, #00d4ff, #ff00ff)',
+                                                                color: '#ffffff',
+                                                                border: 'none',
+                                                                padding: '0.25rem 0.5rem',
+                                                                borderRadius: '4px',
+                                                                cursor: 'pointer',
+                                                                fontSize: '0.8rem',
+                                                                fontWeight: '600'
+                                                            }}
+                                                        >
+                                                            Download
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ color: '#666666' }}>No file</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>{registration.additionalInfo.accommodation ? 'Yes' : 'No'}</TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </tbody>
+                        </Table>
+                    )}
                 </TableContainer>
             </AdminContent>
         </AdminContainer>
