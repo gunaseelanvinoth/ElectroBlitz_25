@@ -305,7 +305,14 @@ const RegistrationPage: React.FC = () => {
                     formData.personalInfo.year &&
                     formData.personalInfo.department;
             case 3:
-                return formData.selectedEvents.length > 0;
+                const hasEvents = formData.selectedEvents.length > 0;
+                // For workshop events, file upload is mandatory
+                const hasWorkshopEvents = formData.selectedEvents.some(eventId => 
+                    ['frontend', 'pcb-assembling', 'eda-tools'].includes(eventId)
+                );
+                const hasFileUpload = formData.uploadedFile !== undefined;
+                
+                return hasEvents && (!hasWorkshopEvents || hasFileUpload);
             case 4:
                 return true;
             default:

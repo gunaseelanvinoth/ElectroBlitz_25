@@ -27,6 +27,12 @@ const UploadTitle = styled.h3`
   gap: 0.5rem;
 `;
 
+const RequiredIndicator = styled.span`
+  color: #ff4444;
+  font-size: 1.2rem;
+  margin-left: 0.25rem;
+`;
+
 const UploadArea = styled.div<{ isDragOver: boolean; hasFile: boolean }>`
   border: 2px dashed ${props => 
     props.isDragOver ? '#00d4ff' : 
@@ -127,9 +133,10 @@ interface FileUploadProps {
     onFileSelect: (file: File | null) => void;
     selectedFile: File | null;
     error?: string;
+    isRequired?: boolean;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, selectedFile, error }) => {
+const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, selectedFile, error, isRequired = false }) => {
     const [isDragOver, setIsDragOver] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -212,6 +219,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, selectedFile, err
         <UploadContainer>
             <UploadTitle>
                 📎 Upload Workshop Document
+                {isRequired && <RequiredIndicator>*</RequiredIndicator>}
             </UploadTitle>
             
             <UploadArea

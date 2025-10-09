@@ -338,6 +338,10 @@ const EventSelection: React.FC<EventSelectionProps> = ({
                 <FileUpload
                     onFileSelect={onFileUpload}
                     selectedFile={uploadedFile || null}
+                    isRequired={true}
+                    error={selectedEvents.some(eventId => 
+                        ['frontend', 'pcb-assembling', 'eda-tools'].includes(eventId)
+                    ) && !uploadedFile ? "File upload is required for workshop events" : undefined}
                 />
             )}
 
