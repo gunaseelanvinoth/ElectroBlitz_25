@@ -11,6 +11,8 @@ export const exportToExcel = (data: FormData[], filename: string = 'electroblitz
         'Phone': registration.personalInfo.phone,
         'College': registration.personalInfo.college,
         'Academic Year': registration.personalInfo.year,
+        'Department': registration.personalInfo.department,
+        'Section': registration.personalInfo.section,
         'Category': registration.category,
         'Team Size': (registration.category === 'tech' || registration.category === 'non-tech') ? (registration.teamSize || 1) : '-',
         'Team Members': (registration.category === 'tech' || registration.category === 'non-tech')
@@ -42,6 +44,8 @@ export const exportToExcel = (data: FormData[], filename: string = 'electroblitz
         { wch: 15 },  // Phone
         { wch: 30 },  // College
         { wch: 15 },  // Academic Year
+        { wch: 18 },  // Department
+        { wch: 10 },  // Section
         { wch: 15 },  // Category
         { wch: 10 },  // Team Size
         { wch: 40 },  // Team Members
@@ -82,6 +86,8 @@ export const exportToCSV = (data: FormData[], filename: string = 'electroblitz-r
         'Phone': registration.personalInfo.phone,
         'College': registration.personalInfo.college,
         'Academic Year': registration.personalInfo.year,
+        'Department': registration.personalInfo.department,
+        'Section': registration.personalInfo.section,
         'Category': registration.category,
         'Team Size': (registration.category === 'tech' || registration.category === 'non-tech') ? (registration.teamSize || 1) : '-',
         'Team Members': (registration.category === 'tech' || registration.category === 'non-tech')
