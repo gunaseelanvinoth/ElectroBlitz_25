@@ -325,7 +325,7 @@ const LandingPage: React.FC = () => {
                     <div>Dr. R.S. Sabeenian, HOD/ECE EXC EVD</div>
 
                     <div style={{ fontWeight: 700, color: '#00d4ff', margin: '1rem 0 0.5rem' }}>Coordinators</div>
-                    <div>Dr. M. Senthi Vadivu, Assistant Professor / ECE</div>
+                    <div>Dr. M. Senthil Vadivu, Assistant Professor / ECE</div>
                     <div>Prof K. Saranya, Assistant Professor / ECE</div>
                 </div>
 
