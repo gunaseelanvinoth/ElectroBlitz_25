@@ -363,7 +363,7 @@ const AdminDashboard: React.FC = () => {
 
   const getExpectedPassword = () => {
     const envPass = process.env.REACT_APP_ADMIN_PASSWORD;
-    return envPass && envPass.length > 0 ? envPass : 'sonaece@123';
+    return envPass && envPass.length > 0 ? envPass : 'ECE@SCT';
   };
 
   const handleLogin = (e: React.FormEvent) => {
