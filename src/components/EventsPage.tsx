@@ -487,8 +487,8 @@ const EventsPage: React.FC = () => {
            // rules: [
                 'Venue: 3rd Floor Lab'
             ]
-       }
-    ];*/
+       }*/
+    ];
 
     const filteredEvents = activeFilter === 'all'
         ? events
