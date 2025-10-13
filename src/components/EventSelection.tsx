@@ -245,7 +245,7 @@ const EventSelection: React.FC<EventSelectionProps> = ({
         // Workshops
         { id: 'frontend', title: 'Frontend', description: 'Venue: VLSI Lab.',  icon: '🎨', category: 'workshop' },
         { id: 'pcb-assembling', title: 'PC Assembling', description: 'Venue: Microwave Lab.', icon: '🛠️', category: 'workshop' },
-        { id: 'eda-tools', title: 'EDA Tools', description: 'Venue: 3rd Floor Lab.',  icon: '🧩', category: 'workshop' }
+       /* { id: 'eda-tools', title: 'EDA Tools', description: 'Venue: 3rd Floor Lab.',  icon: '🧩', category: 'workshop' }*/
     ];
 
     useEffect(() => {
