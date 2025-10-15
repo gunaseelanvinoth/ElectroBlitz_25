@@ -320,27 +320,25 @@ const LoginError = styled.div`
   margin-bottom: 0.75rem;
 `;
 
-interface SupabaseRegistration {
+
+// Interface for the optimized query result (with only selected columns)
+interface OptimizedRegistration {
     id: string;
     created_at: string;
     category: string;
     first_name: string;
     last_name: string;
     email: string;
-    phone: string;
     college: string;
     academic_year: string;
     department: string;
     section: string;
     selected_events: string[];
-    dietary_requirements: string;
     accommodation_required: boolean;
-    emergency_contact: string;
-    emergency_phone: string;
-    uploaded_file_name: string;
-    uploaded_file_url: string;
-    uploaded_file_size: number;
-    uploaded_file_type: string;
+    uploaded_file_name: string | null;
+    uploaded_file_url: string | null;
+    uploaded_file_size: number | null;
+    uploaded_file_type: string | null;
     team_size: number | null;
     team_members: any | null;
     status: string;
@@ -421,10 +419,10 @@ const AdminDashboard: React.FC = () => {
 
                 setTotalCount(count || 0);
 
-                // Use a simpler, faster query to avoid timeout
+                // Use a faster query with only essential columns to avoid timeout
                 const { data, error } = await supabase
                     .from('registrations')
-                    .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, team_size, team_members, status')
+                    .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
                     .order('created_at', { ascending: false })
                     .limit(100); // Limit to 100 records to prevent timeout
 
@@ -437,7 +435,7 @@ const AdminDashboard: React.FC = () => {
                 console.log(`Successfully fetched ${data?.length || 0} registrations from database`);
 
                 // Convert Supabase data to FormData format
-                const convertedRegistrations: FormData[] = data.map((reg: SupabaseRegistration) => ({
+                const convertedRegistrations: FormData[] = data.map((reg: OptimizedRegistration) => ({
                     id: reg.id,
                     registrationDate: reg.created_at,
                     category: reg.category as 'tech' | 'non-tech' | 'workshop',
@@ -445,7 +443,7 @@ const AdminDashboard: React.FC = () => {
                         firstName: reg.first_name,
                         lastName: reg.last_name,
                         email: reg.email,
-                        phone: reg.phone,
+                        phone: '', // Not available in optimized query, set to empty
                         college: reg.college,
                         year: reg.academic_year,
                         department: reg.department,
@@ -453,16 +451,16 @@ const AdminDashboard: React.FC = () => {
                     },
                     selectedEvents: reg.selected_events,
                     additionalInfo: {
-                        dietaryRequirements: reg.dietary_requirements || '',
+                        dietaryRequirements: '', // Not available in optimized query, set to empty
                         accommodation: reg.accommodation_required,
-                        emergencyContact: reg.emergency_contact || '',
-                        emergencyPhone: reg.emergency_phone || ''
+                        emergencyContact: '', // Not available in optimized query, set to empty
+                        emergencyPhone: '' // Not available in optimized query, set to empty
                     },
                     uploadedFile: reg.uploaded_file_name ? {
                         name: reg.uploaded_file_name,
-                        url: reg.uploaded_file_url,
-                        size: reg.uploaded_file_size,
-                        type: reg.uploaded_file_type
+                        url: reg.uploaded_file_url || '',
+                        size: reg.uploaded_file_size || 0,
+                        type: reg.uploaded_file_type || ''
                     } : undefined,
                     teamSize: reg.team_size || undefined,
                     teamMembers: Array.isArray(reg.team_members) ? reg.team_members : undefined
@@ -566,10 +564,10 @@ const AdminDashboard: React.FC = () => {
                 const fetchRegistrations = async () => {
                     try {
                         console.log('Manually refreshing registrations...');
-                        // Use a simpler, faster query to avoid timeout
+                        // Use a faster query with essential columns to avoid timeout
                         const { data, error } = await supabase
                             .from('registrations')
-                            .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, team_size, team_members, status')
+                            .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
                             .order('created_at', { ascending: false })
                             .limit(100); // Limit to 100 records to prevent timeout
 
@@ -582,7 +580,7 @@ const AdminDashboard: React.FC = () => {
                         console.log(`Successfully fetched ${data?.length || 0} registrations from database`);
 
                         // Convert Supabase data to FormData format
-                        const convertedRegistrations: FormData[] = data.map((reg: SupabaseRegistration) => ({
+                        const convertedRegistrations: FormData[] = data.map((reg: OptimizedRegistration) => ({
                             id: reg.id,
                             registrationDate: reg.created_at,
                             category: reg.category as 'tech' | 'non-tech' | 'workshop',
@@ -590,7 +588,7 @@ const AdminDashboard: React.FC = () => {
                                 firstName: reg.first_name,
                                 lastName: reg.last_name,
                                 email: reg.email,
-                                phone: reg.phone,
+                                phone: '', // Not available in optimized query, set to empty
                                 college: reg.college,
                                 year: reg.academic_year,
                                 department: reg.department,
@@ -598,16 +596,16 @@ const AdminDashboard: React.FC = () => {
                             },
                             selectedEvents: reg.selected_events,
                             additionalInfo: {
-                                dietaryRequirements: reg.dietary_requirements || '',
+                                dietaryRequirements: '', // Not available in optimized query, set to empty
                                 accommodation: reg.accommodation_required,
-                                emergencyContact: reg.emergency_contact || '',
-                                emergencyPhone: reg.emergency_phone || ''
+                                emergencyContact: '', // Not available in optimized query, set to empty
+                                emergencyPhone: '' // Not available in optimized query, set to empty
                             },
                             uploadedFile: reg.uploaded_file_name ? {
                                 name: reg.uploaded_file_name,
-                                url: reg.uploaded_file_url,
-                                size: reg.uploaded_file_size,
-                                type: reg.uploaded_file_type
+                                url: reg.uploaded_file_url || '',
+                                size: reg.uploaded_file_size || 0,
+                                type: reg.uploaded_file_type || ''
                             } : undefined,
                             teamSize: reg.team_size || undefined,
                             teamMembers: Array.isArray(reg.team_members) ? reg.team_members : undefined
