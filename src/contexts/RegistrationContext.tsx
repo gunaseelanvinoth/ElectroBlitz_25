@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { FormData } from '../components/RegistrationPage';
-import { supabase } from '../utils/supabase';
+import { api } from '../utils/api';
 
 interface RegistrationContextType {
     registrations: FormData[];
@@ -43,21 +43,7 @@ export const RegistrationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             console.log('Starting registration process...');
             console.log('Registration data:', registration);
 
-            // Test Supabase connection first
-            console.log('Testing Supabase connection...');
-            const { data: testData, error: testError } = await supabase
-                .from('registrations')
-                .select('count')
-                .limit(1);
-
-            if (testError) {
-                console.error('Supabase connection test failed:', testError);
-                return { success: false, error: `Database connection failed: ${testError.message}` };
-            }
-
-            console.log('Supabase connection successful');
-
-            // Prepare data for Supabase
+            // Prepare data for API
             const registrationData = {
                 category: registration.category,
                 first_name: registration.personalInfo.firstName,
@@ -88,25 +74,9 @@ export const RegistrationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             console.log('Prepared registration data:', registrationData);
 
-            // Insert into Supabase
-            console.log('Inserting data into Supabase...');
-            const { data, error } = await supabase
-                .from('registrations')
-                .insert([registrationData])
-                .select()
-                .single();
-
-            if (error) {
-                console.error('Supabase insert error:', error);
-                console.error('Error details:', {
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint,
-                    code: error.code
-                });
-                return { success: false, error: `Database error: ${error.message}` };
-            }
-
+            // Insert via API
+            console.log('Inserting data via API...');
+            const data = await api.post<any>('/api/registrations', registrationData);
             console.log('Data inserted successfully:', data);
 
             // Add to local state with the returned ID

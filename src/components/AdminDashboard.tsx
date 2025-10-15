@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { exportToExcel, exportToCSV, exportEventStatistics, exportCategoryToExcel } from '../utils/exportData';
 import { FormData } from './RegistrationPage';
-import { supabase } from '../utils/supabase';
+import { api } from '../utils/api';
 import SupabaseTest from './SupabaseTest';
 
 const fadeInUp = keyframes`
@@ -410,27 +410,16 @@ const AdminDashboard: React.FC = () => {
             // Clear search so filtering doesn't hide results during refresh
             setSearchTerm('');
 
-            // cheaper count to avoid heavy exact counts
-            const { count } = await supabase
-                .from('registrations')
-                .select('id', { count: 'estimated', head: true });
-            setTotalCount(count || 0);
-
-            // also fetch category breakdown (compatible with older supabase-js: no group())
-            try {
-                const [techRes, nonTechRes, workshopRes] = await Promise.all([
-                    supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('category', 'tech'),
-                    supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('category', 'non-tech'),
-                    supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('category', 'workshop')
-                ]);
-                setCategoryCounts({
-                    tech: techRes.count || 0,
-                    nonTech: nonTechRes.count || 0,
-                    workshop: workshopRes.count || 0
-                });
-            } catch (e) {
-                console.warn('Category counts fetch skipped:', e);
-            }
+            // counts from API
+            const counts = await api.get<{ total: number; categories: { tech: number; nonTech: number; workshop: number } }>(
+                '/api/registrations/count'
+            );
+            setTotalCount(counts.total || 0);
+            setCategoryCounts({
+                tech: counts.categories.tech || 0,
+                nonTech: counts.categories.nonTech || 0,
+                workshop: counts.categories.workshop || 0,
+            });
 
             let pageSize = 150;            // initial batch size
             const minPageSize = 10;        // do not go below
@@ -440,28 +429,14 @@ const AdminDashboard: React.FC = () => {
 
             // Progressive load with backoff on timeout; keep merged data
             while (from < hardCap) {
-                const to = Math.min(from + pageSize - 1, hardCap - 1);
-                const { data, error } = await supabase
-                    .from('registrations')
-                    .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
-                    .order('created_at', { ascending: false })
-                    .range(from, to);
-
-                if (error) {
-                    const msg = error.message || '';
-                    console.warn('Fetch batch error:', msg, 'from=', from, 'to=', to, 'pageSize=', pageSize);
-                    if ((msg.includes('statement timeout') || msg.includes('canceling statement')) && pageSize > minPageSize) {
-                        pageSize = Math.max(minPageSize, Math.floor(pageSize / 2));
-                        // retry same range with smaller pageSize next loop
-                        continue;
-                    }
-                    // non-timeout or min size reached: stop further loading but keep any merged data
-                    break;
-                }
-
+                const size = pageSize;
+                const { data } = await api.get<{ data: OptimizedRegistration[] }>(
+                    '/api/registrations',
+                    { from, size }
+                );
                 if (!data || data.length === 0) break;
-                merged.push(...(data as any));
-                if (data.length < pageSize) break; // no more rows
+                merged.push(...data);
+                if (data.length < size) break;
                 from += pageSize;
             }
 
@@ -519,24 +494,12 @@ const AdminDashboard: React.FC = () => {
         let from = 0;
 
         while (from < maxTotal) {
-            const to = from + size - 1;
-            const { data, error } = await supabase
-                .from('registrations')
-                .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
-                .order('created_at', { ascending: false })
-                .range(from, to);
-
-            if (error) {
-                const msg = error.message || '';
-                if ((msg.includes('statement timeout') || msg.includes('canceling statement')) && size > minSize) {
-                    size = Math.max(minSize, Math.floor(size / 2));
-                    continue; // retry same offset with smaller size
-                }
-                break; // other error, stop
-            }
-
+            const { data } = await api.get<{ data: OptimizedRegistration[] }>(
+                '/api/registrations',
+                { from, size }
+            );
             if (!data || data.length === 0) break;
-            merged.push(...(data as any));
+            merged.push(...data);
             if (data.length < size) break;
             from += size;
         }
@@ -583,27 +546,13 @@ const AdminDashboard: React.FC = () => {
             const minSize = 10;
 
             for (;;) {
-                const to = from + size - 1;
-                const { data, error } = await supabase
-                    .from('registrations')
-                    .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
-                    .order('created_at', { ascending: false })
-                    .range(from, to);
-
-                if (error) {
-                    const msg = error.message || '';
-                    console.warn('Load more error:', msg, 'from=', from, 'to=', to, 'size=', size);
-                    if ((msg.includes('statement timeout') || msg.includes('canceling statement')) && size > minSize) {
-                        size = Math.max(minSize, Math.floor(size / 2));
-                        setPageSize(size);
-                        continue; // retry same range smaller
-                    }
-                    break;
-                }
-
+                const { data } = await api.get<{ data: OptimizedRegistration[] }>(
+                    '/api/registrations',
+                    { from, size }
+                );
                 if (!data || data.length === 0) break;
 
-                const appended: FormData[] = (data as any).map((reg: OptimizedRegistration) => ({
+                const appended: FormData[] = data.map((reg: OptimizedRegistration) => ({
                     id: reg.id,
                     registrationDate: reg.created_at,
                     category: reg.category as 'tech' | 'non-tech' | 'workshop',
@@ -635,7 +584,7 @@ const AdminDashboard: React.FC = () => {
                 }));
 
                 setRegistrations(prev => [...prev, ...appended]);
-                if ((data as any).length < size) break; // no more
+                if (data.length < size) break; // no more
                 break; // load only one batch per click
             }
         } catch (e) {
@@ -833,22 +782,15 @@ const AdminDashboard: React.FC = () => {
                                 if (window.confirm('Are you sure you want to clear all registration data? This action cannot be undone.')) {
                                     try {
                                         setIsLoading(true);
-                                        const { error } = await supabase
-                                            .from('registrations')
-                                            .delete()
-                                            .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
-                                        
-                                        if (error) {
-                                            console.error('Error clearing registrations:', error);
-                                            alert('Failed to clear registrations. Please try again.');
-                                        } else {
+                                        try {
+                                            await api.delete('/api/registrations');
                                             setRegistrations([]);
                                             setFilteredRegistrations([]);
                                             alert('All registrations have been cleared successfully.');
-                                        }
-                                    } catch (error) {
-                                        console.error('Error clearing registrations:', error);
+                                        } catch (err) {
+                                            console.error('Error clearing registrations:', err);
                                         alert('Failed to clear registrations. Please try again.');
+                                        }
                                     } finally {
                                         setIsLoading(false);
                                     }
