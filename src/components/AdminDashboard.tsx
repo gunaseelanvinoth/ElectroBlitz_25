@@ -355,6 +355,9 @@ const AdminDashboard: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const itemsPerPage = 50;
 
   useEffect(() => {
     const authed = typeof window !== 'undefined' && sessionStorage.getItem('eb_admin_authed') === 'true';
@@ -404,15 +407,34 @@ const AdminDashboard: React.FC = () => {
         const fetchRegistrations = async () => {
             try {
                 setIsFetching(true);
+                console.log('Fetching registrations from Supabase...');
+                // First get total count
+                const { count, error: countError } = await supabase
+                    .from('registrations')
+                    .select('*', { count: 'exact', head: true });
+
+                if (countError) {
+                    console.error('Error getting count:', countError);
+                    alert(`Database error: ${countError.message}`);
+                    return;
+                }
+
+                setTotalCount(count || 0);
+
+                // Use a simpler, faster query to avoid timeout
                 const { data, error } = await supabase
                     .from('registrations')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+                    .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, team_size, team_members, status')
+                    .order('created_at', { ascending: false })
+                    .limit(100); // Limit to 100 records to prevent timeout
 
                 if (error) {
                     console.error('Error fetching registrations:', error);
+                    alert(`Database error: ${error.message}`);
                     return;
                 }
+
+                console.log(`Successfully fetched ${data?.length || 0} registrations from database`);
 
                 // Convert Supabase data to FormData format
                 const convertedRegistrations: FormData[] = data.map((reg: SupabaseRegistration) => ({
@@ -470,44 +492,36 @@ const AdminDashboard: React.FC = () => {
 
     const handleExportExcel = () => {
         setIsLoading(true);
-        setTimeout(() => {
-            exportToExcel(registrations);
-            setIsLoading(false);
-        }, 1000);
+        exportToExcel(registrations);
+        setIsLoading(false);
     };
 
     const handleExportCSV = () => {
         setIsLoading(true);
-        setTimeout(() => {
-            exportToCSV(registrations);
-            setIsLoading(false);
-        }, 1000);
+        exportToCSV(registrations);
+        setIsLoading(false);
     };
 
     const handleExportEventStats = () => {
         setIsLoading(true);
-        setTimeout(() => {
-            // Mock event data
-            const events = [
-                { id: 'hackathon', title: '24-Hour Hackathon', category: 'tech', duration: '24 hours', difficulty: 'Advanced', prize: '₹50,000', participants: 150, fee: 'Free' },
-                { id: 'coding-contest', title: 'Algorithm Coding Contest', category: 'tech', duration: '3 hours', difficulty: 'Intermediate', prize: '₹25,000', participants: 200, fee: 'Free' },
-                { id: 'blockchain', title: 'Blockchain Workshop', category: 'workshop', duration: '6 hours', difficulty: 'Intermediate', prize: 'Certificate', participants: 75, fee: '₹500' }
-            ];
-            exportEventStatistics(events);
-            setIsLoading(false);
-        }, 1000);
+        // Mock event data
+        const events = [
+            { id: 'hackathon', title: '24-Hour Hackathon', category: 'tech', duration: '24 hours', difficulty: 'Advanced', prize: '₹50,000', participants: 150, fee: 'Free' },
+            { id: 'coding-contest', title: 'Algorithm Coding Contest', category: 'tech', duration: '3 hours', difficulty: 'Intermediate', prize: '₹25,000', participants: 200, fee: 'Free' },
+            { id: 'blockchain', title: 'Blockchain Workshop', category: 'workshop', duration: '6 hours', difficulty: 'Intermediate', prize: 'Certificate', participants: 75, fee: '₹500' }
+        ];
+        exportEventStatistics(events);
+        setIsLoading(false);
     };
 
     const handleExportByCategory = (category: 'tech' | 'non-tech' | 'workshop') => {
         setIsLoading(true);
-        setTimeout(() => {
-            exportCategoryToExcel(registrations, category);
-            setIsLoading(false);
-        }, 500);
+        exportCategoryToExcel(registrations, category);
+        setIsLoading(false);
     };
 
   const stats = {
-        totalRegistrations: registrations.length,
+        totalRegistrations: totalCount, // Use total count from database
         techRegistrations: registrations.filter(r => r.category === 'tech').length,
         nonTechRegistrations: registrations.filter(r => r.category === 'non-tech').length,
         workshopRegistrations: registrations.filter(r => r.category === 'workshop').length
@@ -544,7 +558,84 @@ const AdminDashboard: React.FC = () => {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <SupabaseTest />
-          <button onClick={handleLogout} style={{ background: 'transparent', color: '#aaaaaa', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 0.9rem', borderRadius: 8, cursor: 'pointer' }}>Logout</button>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              onClick={() => {
+                setIsFetching(true);
+                // Force reload data immediately
+                const fetchRegistrations = async () => {
+                    try {
+                        console.log('Manually refreshing registrations...');
+                        // Use a simpler, faster query to avoid timeout
+                        const { data, error } = await supabase
+                            .from('registrations')
+                            .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, team_size, team_members, status')
+                            .order('created_at', { ascending: false })
+                            .limit(100); // Limit to 100 records to prevent timeout
+
+                        if (error) {
+                            console.error('Error fetching registrations:', error);
+                            alert(`Database error: ${error.message}`);
+                            return;
+                        }
+
+                        console.log(`Successfully fetched ${data?.length || 0} registrations from database`);
+
+                        // Convert Supabase data to FormData format
+                        const convertedRegistrations: FormData[] = data.map((reg: SupabaseRegistration) => ({
+                            id: reg.id,
+                            registrationDate: reg.created_at,
+                            category: reg.category as 'tech' | 'non-tech' | 'workshop',
+                            personalInfo: {
+                                firstName: reg.first_name,
+                                lastName: reg.last_name,
+                                email: reg.email,
+                                phone: reg.phone,
+                                college: reg.college,
+                                year: reg.academic_year,
+                                department: reg.department,
+                                section: reg.section
+                            },
+                            selectedEvents: reg.selected_events,
+                            additionalInfo: {
+                                dietaryRequirements: reg.dietary_requirements || '',
+                                accommodation: reg.accommodation_required,
+                                emergencyContact: reg.emergency_contact || '',
+                                emergencyPhone: reg.emergency_phone || ''
+                            },
+                            uploadedFile: reg.uploaded_file_name ? {
+                                name: reg.uploaded_file_name,
+                                url: reg.uploaded_file_url,
+                                size: reg.uploaded_file_size,
+                                type: reg.uploaded_file_type
+                            } : undefined,
+                            teamSize: reg.team_size || undefined,
+                            teamMembers: Array.isArray(reg.team_members) ? reg.team_members : undefined
+                        }));
+
+                        setRegistrations(convertedRegistrations);
+                    } catch (error) {
+                        console.error('Error fetching registrations:', error);
+                    } finally {
+                        setIsFetching(false);
+                    }
+                };
+                fetchRegistrations();
+              }} 
+              style={{ 
+                background: 'linear-gradient(45deg, #00d4ff, #ff00ff)', 
+                color: '#ffffff', 
+                border: 'none', 
+                padding: '0.5rem 1rem', 
+                borderRadius: 8, 
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              🔄 Refresh Data
+            </button>
+            <button onClick={handleLogout} style={{ background: 'transparent', color: '#aaaaaa', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 0.9rem', borderRadius: 8, cursor: 'pointer' }}>Logout</button>
+          </div>
         </div>
 
                 <StatsGrid>
@@ -664,6 +755,9 @@ const AdminDashboard: React.FC = () => {
                         <div style={{ textAlign: 'center', padding: '2rem', color: '#aaaaaa' }}>
                             <LoadingSpinner />
                             <div style={{ marginTop: '1rem' }}>Loading registrations from database...</div>
+                            <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: '#666666' }}>
+                                Found {registrations.length} registrations so far...
+                            </div>
                         </div>
                     ) : (
                         <Table>
