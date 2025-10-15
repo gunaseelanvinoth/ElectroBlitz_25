@@ -356,6 +356,8 @@ const AdminDashboard: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
     const itemsPerPage = 50;
+    const [pageSize, setPageSize] = useState(100); // for manual load more
+    const [categoryCounts, setCategoryCounts] = useState<{ tech: number; nonTech: number; workshop: number }>({ tech: 0, nonTech: 0, workshop: 0 });
 
   useEffect(() => {
     const authed = typeof window !== 'undefined' && sessionStorage.getItem('eb_admin_authed') === 'true';
@@ -400,42 +402,208 @@ const AdminDashboard: React.FC = () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-    // Fetch registrations from Supabase on component mount
-    useEffect(() => {
-        const fetchRegistrations = async () => {
+    // Helper: fetch registrations in safe batches to avoid timeouts
+    const fetchRegistrationsPaged = async () => {
+        try {
+            setIsFetching(true);
+            console.log('Fetching registrations (paged)...');
+            // Clear search so filtering doesn't hide results during refresh
+            setSearchTerm('');
+
+            // cheaper count to avoid heavy exact counts
+            const { count } = await supabase
+                .from('registrations')
+                .select('id', { count: 'estimated', head: true });
+            setTotalCount(count || 0);
+
+            // also fetch category breakdown (compatible with older supabase-js: no group())
             try {
-                setIsFetching(true);
-                console.log('Fetching registrations from Supabase...');
-                // First get total count
-                const { count, error: countError } = await supabase
-                    .from('registrations')
-                    .select('*', { count: 'exact', head: true });
+                const [techRes, nonTechRes, workshopRes] = await Promise.all([
+                    supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('category', 'tech'),
+                    supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('category', 'non-tech'),
+                    supabase.from('registrations').select('id', { count: 'exact', head: true }).eq('category', 'workshop')
+                ]);
+                setCategoryCounts({
+                    tech: techRes.count || 0,
+                    nonTech: nonTechRes.count || 0,
+                    workshop: workshopRes.count || 0
+                });
+            } catch (e) {
+                console.warn('Category counts fetch skipped:', e);
+            }
 
-                if (countError) {
-                    console.error('Error getting count:', countError);
-                    alert(`Database error: ${countError.message}`);
-                    return;
-                }
+            let pageSize = 150;            // initial batch size
+            const minPageSize = 10;        // do not go below
+            const hardCap = 20000;         // absolute safety cap
+            const merged: OptimizedRegistration[] = [];
+            let from = 0;
 
-                setTotalCount(count || 0);
-
-                // Use a faster query with only essential columns to avoid timeout
+            // Progressive load with backoff on timeout; keep merged data
+            while (from < hardCap) {
+                const to = Math.min(from + pageSize - 1, hardCap - 1);
                 const { data, error } = await supabase
                     .from('registrations')
                     .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
                     .order('created_at', { ascending: false })
-                    .limit(100); // Limit to 100 records to prevent timeout
+                    .range(from, to);
 
                 if (error) {
-                    console.error('Error fetching registrations:', error);
-                    alert(`Database error: ${error.message}`);
-                    return;
+                    const msg = error.message || '';
+                    console.warn('Fetch batch error:', msg, 'from=', from, 'to=', to, 'pageSize=', pageSize);
+                    if ((msg.includes('statement timeout') || msg.includes('canceling statement')) && pageSize > minPageSize) {
+                        pageSize = Math.max(minPageSize, Math.floor(pageSize / 2));
+                        // retry same range with smaller pageSize next loop
+                        continue;
+                    }
+                    // non-timeout or min size reached: stop further loading but keep any merged data
+                    break;
                 }
 
-                console.log(`Successfully fetched ${data?.length || 0} registrations from database`);
+                if (!data || data.length === 0) break;
+                merged.push(...(data as any));
+                if (data.length < pageSize) break; // no more rows
+                from += pageSize;
+            }
 
-                // Convert Supabase data to FormData format
-                const convertedRegistrations: FormData[] = data.map((reg: OptimizedRegistration) => ({
+            console.log(`Fetched ${merged.length} registrations (merged)`);
+
+            const convertedRegistrations: FormData[] = merged.map((reg: OptimizedRegistration) => ({
+                id: reg.id,
+                registrationDate: reg.created_at,
+                category: reg.category as 'tech' | 'non-tech' | 'workshop',
+                personalInfo: {
+                    firstName: reg.first_name,
+                    lastName: reg.last_name,
+                    email: reg.email,
+                    phone: '',
+                    college: reg.college,
+                    year: reg.academic_year,
+                    department: reg.department,
+                    section: reg.section
+                },
+                selectedEvents: reg.selected_events,
+                additionalInfo: {
+                    dietaryRequirements: '',
+                    accommodation: reg.accommodation_required,
+                    emergencyContact: '',
+                    emergencyPhone: ''
+                },
+                uploadedFile: reg.uploaded_file_name ? {
+                    name: reg.uploaded_file_name || '',
+                    url: reg.uploaded_file_url || '',
+                    size: reg.uploaded_file_size || 0,
+                    type: reg.uploaded_file_type || ''
+                } : undefined,
+                teamSize: reg.team_size || undefined,
+                teamMembers: Array.isArray(reg.team_members) ? reg.team_members : undefined
+            }));
+
+            if (convertedRegistrations.length > 0) {
+                setRegistrations(convertedRegistrations);
+            } else {
+                console.warn('No registrations loaded; preserving previous list to avoid empty UI.');
+            }
+        } catch (error) {
+            console.error('Error fetching registrations:', error);
+        } finally {
+            setIsFetching(false);
+        }
+    };
+
+    // Helper used by exports: fetch all rows reliably in batches, independent of UI list
+    const fetchAllForExport = async (): Promise<FormData[]> => {
+        let size = 200;
+        const minSize = 25;
+        const maxTotal = 50000;
+        const merged: OptimizedRegistration[] = [];
+        let from = 0;
+
+        while (from < maxTotal) {
+            const to = from + size - 1;
+            const { data, error } = await supabase
+                .from('registrations')
+                .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
+                .order('created_at', { ascending: false })
+                .range(from, to);
+
+            if (error) {
+                const msg = error.message || '';
+                if ((msg.includes('statement timeout') || msg.includes('canceling statement')) && size > minSize) {
+                    size = Math.max(minSize, Math.floor(size / 2));
+                    continue; // retry same offset with smaller size
+                }
+                break; // other error, stop
+            }
+
+            if (!data || data.length === 0) break;
+            merged.push(...(data as any));
+            if (data.length < size) break;
+            from += size;
+        }
+
+        return (merged as any).map((reg: OptimizedRegistration) => ({
+            id: reg.id,
+            registrationDate: reg.created_at,
+            category: reg.category as 'tech' | 'non-tech' | 'workshop',
+            personalInfo: {
+                firstName: reg.first_name,
+                lastName: reg.last_name,
+                email: reg.email,
+                phone: '',
+                college: reg.college,
+                year: reg.academic_year,
+                department: reg.department,
+                section: reg.section
+            },
+            selectedEvents: reg.selected_events,
+            additionalInfo: {
+                dietaryRequirements: '',
+                accommodation: reg.accommodation_required,
+                emergencyContact: '',
+                emergencyPhone: ''
+            },
+            uploadedFile: reg.uploaded_file_name ? {
+                name: reg.uploaded_file_name || '',
+                url: reg.uploaded_file_url || '',
+                size: reg.uploaded_file_size || 0,
+                type: reg.uploaded_file_type || ''
+            } : undefined,
+            teamSize: reg.team_size || undefined,
+            teamMembers: Array.isArray(reg.team_members) ? reg.team_members : undefined
+        }));
+    };
+
+    // Load more: append one batch starting from current length
+    const loadMoreRegistrations = async () => {
+        if (isFetching) return;
+        try {
+            setIsFetching(true);
+            const from = registrations.length;
+            let size = pageSize;
+            const minSize = 10;
+
+            for (;;) {
+                const to = from + size - 1;
+                const { data, error } = await supabase
+                    .from('registrations')
+                    .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
+                    .order('created_at', { ascending: false })
+                    .range(from, to);
+
+                if (error) {
+                    const msg = error.message || '';
+                    console.warn('Load more error:', msg, 'from=', from, 'to=', to, 'size=', size);
+                    if ((msg.includes('statement timeout') || msg.includes('canceling statement')) && size > minSize) {
+                        size = Math.max(minSize, Math.floor(size / 2));
+                        setPageSize(size);
+                        continue; // retry same range smaller
+                    }
+                    break;
+                }
+
+                if (!data || data.length === 0) break;
+
+                const appended: FormData[] = (data as any).map((reg: OptimizedRegistration) => ({
                     id: reg.id,
                     registrationDate: reg.created_at,
                     category: reg.category as 'tech' | 'non-tech' | 'workshop',
@@ -443,7 +611,7 @@ const AdminDashboard: React.FC = () => {
                         firstName: reg.first_name,
                         lastName: reg.last_name,
                         email: reg.email,
-                        phone: '', // Not available in optimized query, set to empty
+                        phone: '',
                         college: reg.college,
                         year: reg.academic_year,
                         department: reg.department,
@@ -451,13 +619,13 @@ const AdminDashboard: React.FC = () => {
                     },
                     selectedEvents: reg.selected_events,
                     additionalInfo: {
-                        dietaryRequirements: '', // Not available in optimized query, set to empty
+                        dietaryRequirements: '',
                         accommodation: reg.accommodation_required,
-                        emergencyContact: '', // Not available in optimized query, set to empty
-                        emergencyPhone: '' // Not available in optimized query, set to empty
+                        emergencyContact: '',
+                        emergencyPhone: ''
                     },
                     uploadedFile: reg.uploaded_file_name ? {
-                        name: reg.uploaded_file_name,
+                        name: reg.uploaded_file_name || '',
                         url: reg.uploaded_file_url || '',
                         size: reg.uploaded_file_size || 0,
                         type: reg.uploaded_file_type || ''
@@ -466,15 +634,21 @@ const AdminDashboard: React.FC = () => {
                     teamMembers: Array.isArray(reg.team_members) ? reg.team_members : undefined
                 }));
 
-                setRegistrations(convertedRegistrations);
-            } catch (error) {
-                console.error('Error fetching registrations:', error);
-            } finally {
-                setIsFetching(false);
+                setRegistrations(prev => [...prev, ...appended]);
+                if ((data as any).length < size) break; // no more
+                break; // load only one batch per click
             }
-        };
+        } catch (e) {
+            console.error('Load more failed:', e);
+        } finally {
+            setIsFetching(false);
+        }
+    };
 
-        fetchRegistrations();
+    // Fetch registrations on mount
+    useEffect(() => {
+        fetchRegistrationsPaged();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Update filtered registrations when registrations or search term changes
@@ -558,68 +732,7 @@ const AdminDashboard: React.FC = () => {
           <SupabaseTest />
           <div style={{ display: 'flex', gap: '1rem' }}>
             <button 
-              onClick={() => {
-                setIsFetching(true);
-                // Force reload data immediately
-                const fetchRegistrations = async () => {
-                    try {
-                        console.log('Manually refreshing registrations...');
-                        // Use a faster query with essential columns to avoid timeout
-                        const { data, error } = await supabase
-                            .from('registrations')
-                            .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
-                            .order('created_at', { ascending: false })
-                            .limit(100); // Limit to 100 records to prevent timeout
-
-                        if (error) {
-                            console.error('Error fetching registrations:', error);
-                            alert(`Database error: ${error.message}`);
-                            return;
-                        }
-
-                        console.log(`Successfully fetched ${data?.length || 0} registrations from database`);
-
-                        // Convert Supabase data to FormData format
-                        const convertedRegistrations: FormData[] = data.map((reg: OptimizedRegistration) => ({
-                            id: reg.id,
-                            registrationDate: reg.created_at,
-                            category: reg.category as 'tech' | 'non-tech' | 'workshop',
-                            personalInfo: {
-                                firstName: reg.first_name,
-                                lastName: reg.last_name,
-                                email: reg.email,
-                                phone: '', // Not available in optimized query, set to empty
-                                college: reg.college,
-                                year: reg.academic_year,
-                                department: reg.department,
-                                section: reg.section
-                            },
-                            selectedEvents: reg.selected_events,
-                            additionalInfo: {
-                                dietaryRequirements: '', // Not available in optimized query, set to empty
-                                accommodation: reg.accommodation_required,
-                                emergencyContact: '', // Not available in optimized query, set to empty
-                                emergencyPhone: '' // Not available in optimized query, set to empty
-                            },
-                            uploadedFile: reg.uploaded_file_name ? {
-                                name: reg.uploaded_file_name,
-                                url: reg.uploaded_file_url || '',
-                                size: reg.uploaded_file_size || 0,
-                                type: reg.uploaded_file_type || ''
-                            } : undefined,
-                            teamSize: reg.team_size || undefined,
-                            teamMembers: Array.isArray(reg.team_members) ? reg.team_members : undefined
-                        }));
-
-                        setRegistrations(convertedRegistrations);
-                    } catch (error) {
-                        console.error('Error fetching registrations:', error);
-                    } finally {
-                        setIsFetching(false);
-                    }
-                };
-                fetchRegistrations();
-              }} 
+              onClick={() => { fetchRegistrationsPaged(); }} 
               style={{ 
                 background: 'linear-gradient(45deg, #00d4ff, #ff00ff)', 
                 color: '#ffffff', 
@@ -705,6 +818,14 @@ const AdminDashboard: React.FC = () => {
                         >
                             {isLoading && <LoadingSpinner />}
                             Export Event Stats
+                        </ActionButton>
+                        <ActionButton
+                            variant="secondary"
+                            onClick={loadMoreRegistrations}
+                            disabled={isFetching}
+                        >
+                            {isFetching && <LoadingSpinner />}
+                            Load more (+{pageSize})
                         </ActionButton>
                         <ActionButton
                             variant="secondary"
