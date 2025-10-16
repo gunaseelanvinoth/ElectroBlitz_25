@@ -3,7 +3,7 @@ export interface ApiOptions {
 }
 
 const DEFAULT_BASE = (typeof window !== 'undefined')
-    ? (process.env.REACT_APP_API_BASE || '')
+    ? (process.env.REACT_APP_API_BASE || 'http://localhost:3001')
     : '';
 
 export class ApiClient {

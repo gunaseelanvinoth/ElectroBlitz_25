@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { exportToExcel, exportToCSV, exportEventStatistics, exportCategoryToExcel } from '../utils/exportData';
 import { FormData } from './RegistrationPage';
-import { api } from '../utils/api';
+import { supabase } from '../utils/supabase';
 import SupabaseTest from './SupabaseTest';
 
 const fadeInUp = keyframes`
@@ -353,6 +353,7 @@ const AdminDashboard: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
+    const [fetchError, setFetchError] = useState<string>('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
     const itemsPerPage = 50;
@@ -406,60 +407,45 @@ const AdminDashboard: React.FC = () => {
     const fetchRegistrationsPaged = async () => {
         try {
             setIsFetching(true);
-            console.log('Fetching registrations (paged)...');
+            setFetchError('');
+            console.log('Fetching registrations (simple)...');
             // Clear search so filtering doesn't hide results during refresh
             setSearchTerm('');
+            // Fetch with a very simple query: select all columns, single range
+            const { data, error } = await supabase
+                .from('registrations')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .range(0, 9999);
 
-            // counts from API
-            const counts = await api.get<{ total: number; categories: { tech: number; nonTech: number; workshop: number } }>(
-                '/api/registrations/count'
-            );
-            setTotalCount(counts.total || 0);
+            if (error) throw error;
+
+            const merged: OptimizedRegistration[] = (data || []) as unknown as OptimizedRegistration[];
+            setTotalCount(merged.length);
             setCategoryCounts({
-                tech: counts.categories.tech || 0,
-                nonTech: counts.categories.nonTech || 0,
-                workshop: counts.categories.workshop || 0,
+                tech: merged.filter(r => r.category === 'tech').length,
+                nonTech: merged.filter(r => r.category === 'non-tech').length,
+                workshop: merged.filter(r => r.category === 'workshop').length,
             });
-
-            let pageSize = 150;            // initial batch size
-            const minPageSize = 10;        // do not go below
-            const hardCap = 20000;         // absolute safety cap
-            const merged: OptimizedRegistration[] = [];
-            let from = 0;
-
-            // Progressive load with backoff on timeout; keep merged data
-            while (from < hardCap) {
-                const size = pageSize;
-                const { data } = await api.get<{ data: OptimizedRegistration[] }>(
-                    '/api/registrations',
-                    { from, size }
-                );
-                if (!data || data.length === 0) break;
-                merged.push(...data);
-                if (data.length < size) break;
-                from += pageSize;
-            }
-
-            console.log(`Fetched ${merged.length} registrations (merged)`);
 
             const convertedRegistrations: FormData[] = merged.map((reg: OptimizedRegistration) => ({
                 id: reg.id,
                 registrationDate: reg.created_at,
-                category: reg.category as 'tech' | 'non-tech' | 'workshop',
+                category: (reg.category || '') as 'tech' | 'non-tech' | 'workshop' | '',
                 personalInfo: {
-                    firstName: reg.first_name,
-                    lastName: reg.last_name,
-                    email: reg.email,
+                    firstName: reg.first_name || '',
+                    lastName: reg.last_name || '',
+                    email: reg.email || '',
                     phone: '',
-                    college: reg.college,
-                    year: reg.academic_year,
-                    department: reg.department,
-                    section: reg.section
+                    college: reg.college || '',
+                    year: reg.academic_year || '',
+                    department: reg.department || '',
+                    section: reg.section || ''
                 },
-                selectedEvents: reg.selected_events,
+                selectedEvents: Array.isArray(reg.selected_events) ? reg.selected_events : [],
                 additionalInfo: {
                     dietaryRequirements: '',
-                    accommodation: reg.accommodation_required,
+                    accommodation: !!reg.accommodation_required,
                     emergencyContact: '',
                     emergencyPhone: ''
                 },
@@ -469,17 +455,30 @@ const AdminDashboard: React.FC = () => {
                     size: reg.uploaded_file_size || 0,
                     type: reg.uploaded_file_type || ''
                 } : undefined,
-                teamSize: reg.team_size || undefined,
+                teamSize: typeof reg.team_size === 'number' ? reg.team_size : undefined,
                 teamMembers: Array.isArray(reg.team_members) ? reg.team_members : undefined
             }));
 
             if (convertedRegistrations.length > 0) {
                 setRegistrations(convertedRegistrations);
+                // counts already set from API
             } else {
                 console.warn('No registrations loaded; preserving previous list to avoid empty UI.');
+                // keep previous counts
             }
         } catch (error) {
             console.error('Error fetching registrations:', error);
+            const err: any = error;
+            let msg = '';
+            if (err) {
+                msg = err.message || (err.error && err.error.message) || err.details || err.hint || '';
+                if (!msg) {
+                    try { msg = JSON.stringify(err); } catch { msg = String(err); }
+                }
+            } else {
+                msg = 'Unknown error';
+            }
+            setFetchError(msg);
         } finally {
             setIsFetching(false);
         }
@@ -493,16 +492,13 @@ const AdminDashboard: React.FC = () => {
         const merged: OptimizedRegistration[] = [];
         let from = 0;
 
-        while (from < maxTotal) {
-            const { data } = await api.get<{ data: OptimizedRegistration[] }>(
-                '/api/registrations',
-                { from, size }
-            );
-            if (!data || data.length === 0) break;
-            merged.push(...data);
-            if (data.length < size) break;
-            from += size;
-        }
+        // Single query for all rows from Supabase
+        const { data, error } = await supabase
+            .from('registrations')
+            .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        merged.push(...((data || []) as unknown as OptimizedRegistration[]));
 
         return (merged as any).map((reg: OptimizedRegistration) => ({
             id: reg.id,
@@ -546,30 +542,31 @@ const AdminDashboard: React.FC = () => {
             const minSize = 10;
 
             for (;;) {
-                const { data } = await api.get<{ data: OptimizedRegistration[] }>(
-                    '/api/registrations',
-                    { from, size }
-                );
-                if (!data || data.length === 0) break;
+                const { data, error } = await supabase
+                    .from('registrations')
+                    .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
+                    .order('created_at', { ascending: false })
+                    .range(from, from + size - 1);
+                if (error || !data || data.length === 0) break;
 
                 const appended: FormData[] = data.map((reg: OptimizedRegistration) => ({
                     id: reg.id,
                     registrationDate: reg.created_at,
-                    category: reg.category as 'tech' | 'non-tech' | 'workshop',
+                    category: (reg.category || '') as 'tech' | 'non-tech' | 'workshop' | '',
                     personalInfo: {
-                        firstName: reg.first_name,
-                        lastName: reg.last_name,
-                        email: reg.email,
+                        firstName: reg.first_name || '',
+                        lastName: reg.last_name || '',
+                        email: reg.email || '',
                         phone: '',
-                        college: reg.college,
-                        year: reg.academic_year,
-                        department: reg.department,
-                        section: reg.section
+                        college: reg.college || '',
+                        year: reg.academic_year || '',
+                        department: reg.department || '',
+                        section: reg.section || ''
                     },
-                    selectedEvents: reg.selected_events,
+                    selectedEvents: Array.isArray(reg.selected_events) ? reg.selected_events : [],
                     additionalInfo: {
                         dietaryRequirements: '',
-                        accommodation: reg.accommodation_required,
+                        accommodation: !!reg.accommodation_required,
                         emergencyContact: '',
                         emergencyPhone: ''
                     },
@@ -579,7 +576,7 @@ const AdminDashboard: React.FC = () => {
                         size: reg.uploaded_file_size || 0,
                         type: reg.uploaded_file_type || ''
                     } : undefined,
-                    teamSize: reg.team_size || undefined,
+                    teamSize: typeof reg.team_size === 'number' ? reg.team_size : undefined,
                     teamMembers: Array.isArray(reg.team_members) ? reg.team_members : undefined
                 }));
 
@@ -642,7 +639,7 @@ const AdminDashboard: React.FC = () => {
     };
 
   const stats = {
-        totalRegistrations: totalCount, // Use total count from database
+        totalRegistrations: registrations.length,
         techRegistrations: registrations.filter(r => r.category === 'tech').length,
         nonTechRegistrations: registrations.filter(r => r.category === 'non-tech').length,
         workshopRegistrations: registrations.filter(r => r.category === 'workshop').length
@@ -676,6 +673,19 @@ const AdminDashboard: React.FC = () => {
                     <Title>Admin Dashboard</Title>
                     <Subtitle>Manage ElectroBlitz Registrations</Subtitle>
                 </Header>
+
+        {fetchError && (
+          <div style={{
+            background: 'rgba(255, 68, 68, 0.12)',
+            border: '1px solid rgba(255, 68, 68, 0.35)',
+            color: '#ff8888',
+            padding: '12px 14px',
+            borderRadius: 10,
+            marginBottom: 16
+          }}>
+            ❌ Failed to load registrations: {fetchError}
+          </div>
+        )}
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <SupabaseTest />
@@ -780,20 +790,22 @@ const AdminDashboard: React.FC = () => {
                             variant="secondary"
                             onClick={async () => {
                                 if (window.confirm('Are you sure you want to clear all registration data? This action cannot be undone.')) {
-                                    try {
-                                        setIsLoading(true);
-                                        try {
-                                            await api.delete('/api/registrations');
-                                            setRegistrations([]);
-                                            setFilteredRegistrations([]);
-                                            alert('All registrations have been cleared successfully.');
-                                        } catch (err) {
-                                            console.error('Error clearing registrations:', err);
-                                        alert('Failed to clear registrations. Please try again.');
-                                        }
-                                    } finally {
-                                        setIsLoading(false);
-                                    }
+                            try {
+                                setIsLoading(true);
+                                const { error } = await supabase
+                                    .from('registrations')
+                                    .delete()
+                                    .neq('id', '00000000-0000-0000-0000-000000000000');
+                                if (error) throw error;
+                                setRegistrations([]);
+                                setFilteredRegistrations([]);
+                                alert('All registrations have been cleared successfully.');
+                            } catch (err) {
+                                console.error('Error clearing registrations:', err);
+                                alert('Failed to clear registrations. Please try again.');
+                            } finally {
+                                setIsLoading(false);
+                            }
                                 }
                             }}
                             disabled={registrations.length === 0 || isLoading}

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { FormData } from '../components/RegistrationPage';
-import { api } from '../utils/api';
+import { supabase } from '../utils/supabase';
 
 interface RegistrationContextType {
     registrations: FormData[];
@@ -74,16 +74,26 @@ export const RegistrationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             console.log('Prepared registration data:', registrationData);
 
-            // Insert via API
-            console.log('Inserting data via API...');
-            const data = await api.post<any>('/api/registrations', registrationData);
+            // Insert via Supabase
+            console.log('Inserting data via Supabase...');
+            const { data, error } = await supabase
+                .from('registrations')
+                .insert(registrationData)
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Supabase insert error:', error);
+                return { success: false, error: error.message };
+            }
+
             console.log('Data inserted successfully:', data);
 
             // Add to local state with the returned ID
             const newRegistration = {
                 ...registration,
-                id: data.id,
-                registrationDate: data.created_at
+                id: (data as any).id,
+                registrationDate: (data as any).created_at
             };
             
             setRegistrations(prev => [...prev, newRegistration]);

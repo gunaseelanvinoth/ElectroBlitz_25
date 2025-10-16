@@ -284,6 +284,7 @@ interface ReviewAndSubmitProps {
 const ReviewAndSubmit: React.FC<ReviewAndSubmitProps> = ({ formData, onUpdate }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+    const [submitError, setSubmitError] = useState<string | null>(null);
     const { addRegistration } = useRegistrations();
     const navigate = useNavigate();
 
@@ -326,6 +327,7 @@ const ReviewAndSubmit: React.FC<ReviewAndSubmitProps> = ({ formData, onUpdate })
     const handleSubmit = async () => {
         setIsSubmitting(true);
         setSubmitStatus('idle');
+        setSubmitError(null);
 
         try {
             // Save registration data using context (now with Supabase)
@@ -340,10 +342,12 @@ const ReviewAndSubmit: React.FC<ReviewAndSubmitProps> = ({ formData, onUpdate })
                 }, 1800);
             } else {
                 console.error('Registration failed:', result.error);
+                setSubmitError(result.error || 'Unknown error');
                 setSubmitStatus('error');
             }
         } catch (error) {
             console.error('Registration failed:', error);
+            setSubmitError(error instanceof Error ? error.message : String(error));
             setSubmitStatus('error');
         } finally {
             setIsSubmitting(false);
@@ -385,7 +389,12 @@ const ReviewAndSubmit: React.FC<ReviewAndSubmitProps> = ({ formData, onUpdate })
 
             {submitStatus === 'error' && (
                 <ErrorMessage>
-                    ❌ Registration failed. Please check your internet connection and try again. If the problem persists, contact support.
+                    ❌ Registration failed.
+                    {submitError && (
+                        <div style={{ marginTop: '0.5rem', color: '#ffaaaa' }}>
+                            {submitError}
+                        </div>
+                    )}
                 </ErrorMessage>
             )}
 
