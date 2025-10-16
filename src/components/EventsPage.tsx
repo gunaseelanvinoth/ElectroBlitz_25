@@ -475,7 +475,7 @@ const EventsPage: React.FC = () => {
                 'Venue: Microwave Lab'
             ]
         },
-        /*{
+        {
             //id: 'eda-tools',
            // title: 'EDA Tools',
            // description: 'Explore EDA tools. //Venue: 3rd Floor Lab.',
@@ -487,7 +487,7 @@ const EventsPage: React.FC = () => {
            // rules: [
                 'Venue: 3rd Floor Lab'
             ]
-       }*/
+       }
     ];
 
     const filteredEvents = activeFilter === 'all'
