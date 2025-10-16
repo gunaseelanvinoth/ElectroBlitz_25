@@ -449,7 +449,7 @@ const EventsPage: React.FC = () => {
         },
 
         // Workshops
-        {
+        /*{
             id: 'frontend',
             title: 'Frontend',
             description: 'Hands-on frontend session. Venue: VLSI Lab.',
@@ -461,7 +461,7 @@ const EventsPage: React.FC = () => {
             rules: [
                 'Venue: VLSI Lab'
             ]
-        },
+        },*/
        /* {
             id: 'pcb-assembling',
             title: 'PCB Assembling',
