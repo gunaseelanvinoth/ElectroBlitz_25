@@ -408,46 +408,129 @@ const AdminDashboard: React.FC = () => {
         try {
             setIsFetching(true);
             setFetchError('');
-            console.log('Fetching registrations (simple)...');
+            console.log('Fetching registrations (ultra-simple)...');
             // Clear search so filtering doesn't hide results during refresh
             setSearchTerm('');
-            // Fetch with a very simple query: select all columns, single range
-            const { data, error } = await supabase
+            
+            // Step 1: Test basic connection first
+            console.log('Step 1: Testing basic Supabase connection...');
+            const { data: testData, error: testError } = await supabase
                 .from('registrations')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .range(0, 9999);
+                .select('id')
+                .limit(1);
+            
+            if (testError) {
+                console.error('Basic connection test failed:', testError);
+                throw new Error(`Connection failed: ${testError.message || JSON.stringify(testError)}`);
+            }
+            
+            console.log('Basic connection test passed');
+            
+            // Step 2: Get basic count (with fallback)
+            console.log('Step 2: Getting basic count...');
+            let count = 0;
+            try {
+                const { count: countResult, error: countError } = await supabase
+                    .from('registrations')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (countError) {
+                    console.warn('Count query failed, will use alternative method:', countError);
+                    // Fallback: get a small sample to estimate count
+                    const { data: sampleData } = await supabase
+                        .from('registrations')
+                        .select('id')
+                        .limit(1000);
+                    count = sampleData?.length || 0;
+                    console.log('Using sample count:', count);
+                } else {
+                    count = countResult || 0;
+                }
+            } catch (countErr) {
+                console.warn('Count query exception, using fallback:', countErr);
+                // Fallback: get a small sample to estimate count
+                const { data: sampleData } = await supabase
+                    .from('registrations')
+                    .select('id')
+                    .limit(1000);
+                count = sampleData?.length || 0;
+                console.log('Using fallback count:', count);
+            }
+            
+            console.log('Total records in database:', count);
+            
+            if (!count || count === 0) {
+                setRegistrations([]);
+                setTotalCount(0);
+                setCategoryCounts({ tech: 0, nonTech: 0, workshop: 0 });
+                setFetchError('No registrations found. Please add some test data first.');
+                return;
+            }
+            
+            // Step 3: Load data in small batches to avoid timeout
+            console.log('Step 3: Loading data in batches...');
+            const batchSize = 20;
+            const allData: any[] = [];
+            let offset = 0;
+            
+            while (offset < count) {
+                console.log(`Loading batch ${Math.floor(offset/batchSize) + 1}...`);
+                const { data: batchData, error: batchError } = await supabase
+                    .from('registrations')
+                    .select('*')
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + batchSize - 1);
+                
+                if (batchError) {
+                    console.error('Batch error:', batchError);
+                    throw batchError;
+                }
+                
+                if (batchData) {
+                    allData.push(...batchData);
+                }
+                
+                offset += batchSize;
+                
+                // Small delay to prevent overwhelming the database
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            console.log('Loaded all data:', allData.length, 'records');
+            const data = allData;
 
-            if (error) throw error;
+            console.log('Raw data from Supabase:', data);
+            
+            if (!data || data.length === 0) {
+                console.log('No data found in database');
+                setRegistrations([]);
+                setTotalCount(0);
+                setCategoryCounts({ tech: 0, nonTech: 0, workshop: 0 });
+                setFetchError('No registrations found. Please add some test data first.');
+                return;
+            }
 
-            const merged: OptimizedRegistration[] = (data || []) as unknown as OptimizedRegistration[];
-            setTotalCount(merged.length);
-            setCategoryCounts({
-                tech: merged.filter(r => r.category === 'tech').length,
-                nonTech: merged.filter(r => r.category === 'non-tech').length,
-                workshop: merged.filter(r => r.category === 'workshop').length,
-            });
-
-            const convertedRegistrations: FormData[] = merged.map((reg: OptimizedRegistration) => ({
+            // Complete conversion with all fields
+            const convertedRegistrations: FormData[] = data.map((reg: any) => ({
                 id: reg.id,
-                registrationDate: reg.created_at,
+                registrationDate: reg.created_at || reg.registration_date,
                 category: (reg.category || '') as 'tech' | 'non-tech' | 'workshop' | '',
                 personalInfo: {
                     firstName: reg.first_name || '',
                     lastName: reg.last_name || '',
                     email: reg.email || '',
-                    phone: '',
+                    phone: reg.phone || '',
                     college: reg.college || '',
                     year: reg.academic_year || '',
                     department: reg.department || '',
                     section: reg.section || ''
                 },
-                selectedEvents: Array.isArray(reg.selected_events) ? reg.selected_events : [],
+                selectedEvents: Array.isArray(reg.selected_events) ? reg.selected_events : (typeof reg.selected_events === 'string' ? JSON.parse(reg.selected_events) : []),
                 additionalInfo: {
-                    dietaryRequirements: '',
+                    dietaryRequirements: reg.dietary_requirements || '',
                     accommodation: !!reg.accommodation_required,
-                    emergencyContact: '',
-                    emergencyPhone: ''
+                    emergencyContact: reg.emergency_contact || '',
+                    emergencyPhone: reg.emergency_phone || ''
                 },
                 uploadedFile: reg.uploaded_file_name ? {
                     name: reg.uploaded_file_name || '',
@@ -456,16 +539,19 @@ const AdminDashboard: React.FC = () => {
                     type: reg.uploaded_file_type || ''
                 } : undefined,
                 teamSize: typeof reg.team_size === 'number' ? reg.team_size : undefined,
-                teamMembers: Array.isArray(reg.team_members) ? reg.team_members : undefined
+                teamMembers: Array.isArray(reg.team_members) ? reg.team_members : (reg.team_members ? JSON.parse(reg.team_members) : undefined)
             }));
 
-            if (convertedRegistrations.length > 0) {
-                setRegistrations(convertedRegistrations);
-                // counts already set from API
-            } else {
-                console.warn('No registrations loaded; preserving previous list to avoid empty UI.');
-                // keep previous counts
-            }
+            console.log('Converted registrations:', convertedRegistrations.length);
+            
+            setRegistrations(convertedRegistrations);
+            setTotalCount(convertedRegistrations.length);
+            setCategoryCounts({
+                tech: convertedRegistrations.filter(r => r.category === 'tech').length,
+                nonTech: convertedRegistrations.filter(r => r.category === 'non-tech').length,
+                workshop: convertedRegistrations.filter(r => r.category === 'workshop').length,
+            });
+            setFetchError(''); // Clear any previous errors
         } catch (error) {
             console.error('Error fetching registrations:', error);
             const err: any = error;
@@ -563,7 +649,7 @@ const AdminDashboard: React.FC = () => {
                         department: reg.department || '',
                         section: reg.section || ''
                     },
-                    selectedEvents: Array.isArray(reg.selected_events) ? reg.selected_events : [],
+                    selectedEvents: Array.isArray(reg.selected_events) ? reg.selected_events : (typeof reg.selected_events === 'string' ? JSON.parse(reg.selected_events) : []),
                     additionalInfo: {
                         dietaryRequirements: '',
                         accommodation: !!reg.accommodation_required,
@@ -687,9 +773,148 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
+        <div style={{
+          background: 'rgba(0, 212, 255, 0.12)',
+          border: '1px solid rgba(0, 212, 255, 0.35)',
+          color: '#00d4ff',
+          padding: '12px 14px',
+          borderRadius: 10,
+          marginBottom: 16
+        }}>
+          📊 Current Status: {registrations.length} registrations loaded | Total in DB: {totalCount} | Tech: {categoryCounts.tech} | Non-Tech: {categoryCounts.nonTech} | Workshop: {categoryCounts.workshop} | Files: {registrations.filter(r => r.uploadedFile).length}
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <SupabaseTest />
           <div style={{ display: 'flex', gap: '1rem' }}>
+            <button 
+              onClick={async () => {
+                try {
+                  const testData = {
+                    category: 'tech',
+                    first_name: 'Test',
+                    last_name: 'User',
+                    email: `test-${Date.now()}@example.com`,
+                    phone: '1234567890',
+                    college: 'Test College',
+                    academic_year: '2024',
+                    department: 'Computer Science',
+                    section: 'A',
+                    selected_events: ['hackathon'],
+                    dietary_requirements: '',
+                    accommodation_required: false,
+                    emergency_contact: '',
+                    emergency_phone: '',
+                    status: 'pending'
+                  };
+                  const { error } = await supabase.from('registrations').insert([testData]);
+                  if (error) throw error;
+                  alert('Test data inserted successfully!');
+                  fetchRegistrationsPaged();
+                } catch (err) {
+                  alert('Failed to insert test data: ' + (err as any).message);
+                }
+              }}
+              style={{ 
+                background: 'linear-gradient(45deg, #00ff88, #00d4ff)', 
+                color: '#ffffff', 
+                border: 'none', 
+                padding: '0.5rem 1rem', 
+                borderRadius: 8, 
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              ➕ Add Test Data
+            </button>
+            <button 
+              onClick={async () => {
+                try {
+                  console.log('Testing Supabase connection step by step...');
+                  
+                  // Test 1: Basic connection
+                  console.log('Test 1: Basic connection...');
+                  const { data: test1, error: error1 } = await supabase
+                    .from('registrations')
+                    .select('id')
+                    .limit(1);
+                  
+                  if (error1) {
+                    console.error('Test 1 failed:', error1);
+                    alert(`Connection test failed: ${error1.message || JSON.stringify(error1)}`);
+                    return;
+                  }
+                  
+                  console.log('Test 1 passed:', test1);
+                  
+                  // Test 1.5: Check if we can get any data at all
+                  console.log('Test 1.5: Check table access...');
+                  const { data: checkData, error: checkError } = await supabase
+                    .from('registrations')
+                    .select('*')
+                    .limit(1);
+                  
+                  if (checkError) {
+                    console.error('Table access failed:', checkError);
+                    alert(`Table access failed: ${checkError.message || JSON.stringify(checkError)}. The 'registrations' table might not exist. Please run the SQL setup first.`);
+                    return;
+                  }
+                  
+                  console.log('Test 1.5 passed, table exists');
+                  
+                  // Test 2: Count query (skip if table might not exist)
+                  console.log('Test 2: Count query...');
+                  let count = 0;
+                  try {
+                    const { count: countResult, error: error2 } = await supabase
+                      .from('registrations')
+                      .select('*', { count: 'exact', head: true });
+                    
+                    if (error2) {
+                      console.warn('Count query failed (table might not exist):', error2);
+                      count = 0;
+                    } else {
+                      count = countResult || 0;
+                      console.log('Test 2 passed, count:', count);
+                    }
+                  } catch (countErr) {
+                    console.warn('Count query exception:', countErr);
+                    count = 0;
+                  }
+                  
+                  // Test 3: Get some data
+                  console.log('Test 3: Get data...');
+                  const { data: test3, error: error3 } = await supabase
+                    .from('registrations')
+                    .select('*')
+                    .limit(3);
+                  
+                  if (error3) {
+                    console.error('Test 3 failed:', error3);
+                    alert(`Data test failed: ${error3.message || JSON.stringify(error3)}`);
+                    return;
+                  }
+                  
+                  console.log('Test 3 passed, data:', test3);
+                  alert(`All tests passed! Found ${count} total records, showing ${test3?.length || 0} sample records. Check console for details.`);
+                  
+                } catch (err) {
+                  console.error('Test exception:', err);
+                  alert('Test exception: ' + (err as any).message);
+                }
+              }}
+              style={{ 
+                background: 'linear-gradient(45deg, #ffaa00, #ff6600)', 
+                color: '#ffffff', 
+                border: 'none', 
+                padding: '0.5rem 1rem', 
+                borderRadius: 8, 
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              🔍 Debug Connection
+            </button>
             <button 
               onClick={() => { fetchRegistrationsPaged(); }} 
               style={{ 
