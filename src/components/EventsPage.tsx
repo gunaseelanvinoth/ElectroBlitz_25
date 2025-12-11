@@ -476,15 +476,15 @@ const EventsPage: React.FC = () => {
             ]
         },
         {
-            //id: 'eda-tools',
-           // title: 'EDA Tools',
-           // description: 'Explore EDA tools. //Venue: 3rd Floor Lab.',
+            id: 'eda-tools',
+           title: 'EDA Tools',
+           description: 'Explore EDA tools. //Venue: 3rd Floor Lab.',
             // duration: '—',
             // difficulty: 'Intermediate',
             // prize: 'Certificate',
             icon: '🧩',
-            //category: 'workshop',
-           // rules: [
+            category: 'workshop',
+           rules: [
                 'Venue: 3rd Floor Lab'
             ]
        }
@@ -609,6 +609,7 @@ const EventsPage: React.FC = () => {
 };
 
 export default EventsPage;
+
 
 
 
