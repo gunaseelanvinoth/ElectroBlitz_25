@@ -149,27 +149,27 @@ const EventDescription = styled.p`
   margin-bottom: 1rem;
 `;
 
-// const EventDetails = styled.div`
-//   display: flex;
-//   justify-content: space-between;
-//   align-items: center;
-//   font-size: 0.8rem;
-//   color: #aaaaaa;
-// `;
+const EventDetails = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #aaaaaa;
+`;
 
-// const EventDuration = styled.span`
-//   background: rgba(0, 212, 255, 0.2);
-//   padding: 0.25rem 0.5rem;
-//   border-radius: 10px;
-//   color: #00d4ff;
-// `;
+const EventDuration = styled.span`
+  background: rgba(0, 212, 255, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 10px;
+  color: #00d4ff;
+`;
 
-// const EventDifficulty = styled.span`
-//   background: rgba(255, 0, 255, 0.2);
-//   padding: 0.25rem 0.5rem;
-//   border-radius: 10px;
-//   color: #ff00ff;
-// `;
+const EventDifficulty = styled.span`
+  background: rgba(255, 0, 255, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 10px;
+  color: #ff00ff;
+`;
 
 const SelectionInfo = styled.div`
   text-align: center;
@@ -243,9 +243,9 @@ const EventSelection: React.FC<EventSelectionProps> = ({
         { id: 'case-study', title: 'Case Study', description: 'Venues: Hall No 925 and 923. Team: 2.',  icon: '📊', category: 'non-tech' },
 
         // Workshops
-        /*{ id: 'frontend', title: 'Frontend', description: 'Venue: VLSI Lab.',  icon: '🎨', category: 'workshop' },*/
-        /*{ id: 'pcb-assembling', title: 'PC Assembling', description: 'Venue: Microwave Lab.', icon: '🛠️', category: 'workshop' },*/
-       /* { id: 'eda-tools', title: 'EDA Tools', description: 'Venue: 3rd Floor Lab.',  icon: '🧩', category: 'workshop' }*/
+        { id: 'frontend', title: 'Frontend', description: 'Venue: VLSI Lab.',  icon: '🎨', category: 'workshop' },*/
+        { id: 'pcb-assembling', title: 'PC Assembling', description: 'Venue: Microwave Lab.', icon: '🛠️', category: 'workshop' },
+        { id: 'eda-tools', title: 'EDA Tools', description: 'Venue: 3rd Floor Lab.',  icon: '🧩', category: 'workshop' }
     ];
 
     useEffect(() => {
@@ -315,12 +315,12 @@ const EventSelection: React.FC<EventSelectionProps> = ({
 
                         <EventDescription>{event.description}</EventDescription>
 
-                        {/* <EventDetails>
+                        { <EventDetails>
                             <EventDuration>{event.duration}</EventDuration>
                             <EventDifficulty style={{ color: getDifficultyColor(event.difficulty) }}>
                                 {event.difficulty}
                             </EventDifficulty>
-                        </EventDetails> */}
+                        </EventDetails> }
                     </EventCard>
                 ))}
             </EventsGrid>
@@ -353,6 +353,7 @@ const EventSelection: React.FC<EventSelectionProps> = ({
 };
 
 export default EventSelection;
+
 
 
 
