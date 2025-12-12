@@ -153,7 +153,6 @@ const SuccessMessage = styled.div`
   animation: ${fadeInUp} 0.6s ease-out;
 `;
 
-// Success modal
 const Backdrop = styled.div`
   position: fixed;
   inset: 0;
@@ -324,30 +323,49 @@ const ReviewAndSubmit: React.FC<ReviewAndSubmitProps> = ({ formData, onUpdate })
         'ui-ux': 'UI/UX Design Workshop'
     };
 
+    const friendlyError = (message: string) => {
+        if (message.toLowerCase().includes('failed to fetch')) {
+            return 'Unable to reach the server. Please check your internet connection or try again in a moment.';
+        }
+        return message;
+    };
+
     const handleSubmit = async () => {
-        setIsSubmitting(true);
+        if (isSubmitting) return;
         setSubmitStatus('idle');
         setSubmitError(null);
 
+        if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+            setSubmitStatus('error');
+            setSubmitError('You appear to be offline. Please reconnect and try again.');
+            return;
+        }
+
+        setIsSubmitting(true);
+
         try {
-            // Save registration data using context (now with Supabase)
             const result = await addRegistration(formData);
             
             if (result.success) {
-                console.log('Registration saved successfully to Supabase:', formData);
+                console.log('Registration saved successfully:', formData);
+                if (result.error) {
+                    // Local-only save; still show success but inform via console
+                    console.warn(result.error);
+                }
                 setSubmitStatus('success');
-                // Briefly show success then navigate
                 setTimeout(() => {
                     navigate('/');
-                }, 1800);
+                }, 1200);
             } else {
                 console.error('Registration failed:', result.error);
-                setSubmitError(result.error || 'Unknown error');
+                const msg = result.error ? friendlyError(result.error) : 'Unknown error';
+                setSubmitError(msg);
                 setSubmitStatus('error');
             }
         } catch (error) {
             console.error('Registration failed:', error);
-            setSubmitError(error instanceof Error ? error.message : String(error));
+            const raw = error instanceof Error ? error.message : String(error);
+            setSubmitError(friendlyError(raw));
             setSubmitStatus('error');
         } finally {
             setIsSubmitting(false);
@@ -395,6 +413,36 @@ const ReviewAndSubmit: React.FC<ReviewAndSubmitProps> = ({ formData, onUpdate })
                             {submitError}
                         </div>
                     )}
+                    <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <button
+                            onClick={handleSubmit}
+                            style={{
+                                background: 'linear-gradient(45deg, #00d4ff, #ff00ff)',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '0.55rem 0.9rem',
+                                borderRadius: 8,
+                                cursor: 'pointer',
+                                fontWeight: 600
+                            }}
+                        >
+                            Retry Submit
+                        </button>
+                        <button
+                            onClick={() => navigate('/')}
+                            style={{
+                                background: 'transparent',
+                                color: '#aaaaaa',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                padding: '0.55rem 0.9rem',
+                                borderRadius: 8,
+                                cursor: 'pointer',
+                                fontWeight: 600
+                            }}
+                        >
+                            Go to Home
+                        </button>
+                    </div>
                 </ErrorMessage>
             )}
 

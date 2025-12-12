@@ -10,7 +10,6 @@ const SupabaseTest: React.FC = () => {
         setTestResult('Testing connection...');
         
         try {
-            // Test 1: Basic connection
             const { data, error } = await supabase
                 .from('registrations')
                 .select('count')
@@ -23,7 +22,6 @@ const SupabaseTest: React.FC = () => {
 
             setTestResult('✅ Connection successful! Database is accessible.');
             
-            // Test 2: Try to insert a test record
             const testData = {
                 category: 'tech',
                 first_name: 'Test',
@@ -55,7 +53,6 @@ const SupabaseTest: React.FC = () => {
 
             setTestResult(`✅ All tests passed! Test record created with ID: ${insertData.id}`);
             
-            // Clean up test record
             await supabase
                 .from('registrations')
                 .delete()

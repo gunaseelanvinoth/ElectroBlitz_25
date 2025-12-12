@@ -168,8 +168,8 @@ export interface FormData {
         size: number;
         type: string;
     };
-    teamSize?: number; // applies to tech/non-tech only
-    teamMembers?: { name: string; email: string; phone: string }[]; // members beyond personalInfo (Member 2..n)
+    teamSize?: number;
+    teamMembers?: { name: string; email: string; phone: string }[];
 }
 
 const RegistrationPage: React.FC = () => {
@@ -221,7 +221,6 @@ const RegistrationPage: React.FC = () => {
     const handleFileUpload = (file: File | null) => {
         setUploadedFile(file);
         if (file) {
-            // Convert file to base64 for storage
             const reader = new FileReader();
             reader.onload = () => {
                 const base64String = reader.result as string;
@@ -306,7 +305,6 @@ const RegistrationPage: React.FC = () => {
                     formData.personalInfo.department;
             case 3:
                 const hasEvents = formData.selectedEvents.length > 0;
-                // For workshop events, file upload is mandatory
                 const hasWorkshopEvents = formData.selectedEvents.some(eventId => 
                     ['frontend', 'pcb-assembling', 'eda-tools'].includes(eventId)
                 );

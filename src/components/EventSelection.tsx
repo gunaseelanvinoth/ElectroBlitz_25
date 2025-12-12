@@ -149,28 +149,6 @@ const EventDescription = styled.p`
   margin-bottom: 1rem;
 `;
 
-const EventDetails = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.8rem;
-  color: #aaaaaa;
-`;
-
-const EventDuration = styled.span`
-  background: rgba(0, 212, 255, 0.2);
-  padding: 0.25rem 0.5rem;
-  border-radius: 10px;
-  color: #00d4ff;
-`;
-
-const EventDifficulty = styled.span`
-  background: rgba(255, 0, 255, 0.2);
-  padding: 0.25rem 0.5rem;
-  border-radius: 10px;
-  color: #ff00ff;
-`;
-
 const SelectionInfo = styled.div`
   text-align: center;
   color: #aaaaaa;
@@ -219,6 +197,28 @@ interface EventSelectionProps {
     uploadedFile?: File | null;
 }
 
+const technicalEvents: Event[] = [
+    { id: 'idea-presentation', title: 'Idea Presentation', description: 'Venue: Microprocessor Lab. Team: 2 members.',  icon: '💡', category: 'tech' },
+    { id: 'tech-debate', title: 'Tech Debate', description: 'Venue: Communication Lab.',  icon: '🗣️', category: 'tech' },
+    { id: 'circuit-debugging', title: 'Circuit Debugging', description: 'Venues: Hall No 915, Electronics Lab. Team: 2.', icon: '🔧', category: 'tech' },
+    { id: 'code-debugging', title: 'Code Debugging', description: 'Venues: Hall No 914, DSP Lab.', icon: '🐞', category: 'tech' },
+    { id: 'electrathon', title: 'Electrathon', description: 'Venue: Project Corridor. Team: 3-4.',  icon: '⚡', category: 'tech' }
+];
+
+const nonTechnicalEvents: Event[] = [
+    { id: 'dugout-deals', title: 'The Dugout Deals', description: 'Venue: 916 or APJ Hall. Team: 3-4.', icon: '🤝', category: 'non-tech' },
+    { id: 'connections', title: 'Connections', description: 'Venues: Hall No 922 and 923. Team: 2.',  icon: '🔗', category: 'non-tech' },
+    { id: 'case-study', title: 'Case Study', description: 'Venues: Hall No 925 and 923. Team: 2.',  icon: '📊', category: 'non-tech' }
+];
+
+const workshopEvents: Event[] = [
+    { id: 'frontend', title: 'Frontend', description: 'Venue: VLSI Lab.',  icon: '🎨', category: 'workshop' },
+    { id: 'pcb-assembling', title: 'PC Assembling', description: 'Venue: Microwave Lab.', icon: '🛠️', category: 'workshop' },
+    { id: 'eda-tools', title: 'EDA Tools', description: 'Venue: 3rd Floor Lab.',  icon: '🧩', category: 'workshop' }
+];
+
+const events: Event[] = [...technicalEvents, ...nonTechnicalEvents, ...workshopEvents];
+
 const EventSelection: React.FC<EventSelectionProps> = ({
     category,
     selectedEvents,
@@ -228,25 +228,6 @@ const EventSelection: React.FC<EventSelectionProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<'tech' | 'non-tech' | 'workshop'>('tech');
     const maxEvents = 5;
-
-    const events: Event[] = [
-        // Technical
-        { id: 'idea-presentation', title: 'Idea Presentation', description: 'Venue: Microprocessor Lab. Team: 2 members.',  icon: '💡', category: 'tech' },
-        { id: 'tech-debate', title: 'Tech Debate', description: 'Venue: Communication Lab.',  icon: '🗣️', category: 'tech' },
-        { id: 'circuit-debugging', title: 'Circuit Debugging', description: 'Venues: Hall No 915, Electronics Lab. Team: 2.', icon: '🔧', category: 'tech' },
-        { id: 'code-debugging', title: 'Code Debugging', description: 'Venues: Hall No 914, DSP Lab.', icon: '🐞', category: 'tech' },
-        { id: 'electrathon', title: 'Electrathon', description: 'Venue: Project Corridor. Team: 3-4.',  icon: '⚡', category: 'tech' },
-
-        // Non-Technical
-        { id: 'dugout-deals', title: 'The Dugout Deals', description: 'Venue: 916 or APJ Hall. Team: 3-4.', icon: '🤝', category: 'non-tech' },
-        { id: 'connections', title: 'Connections', description: 'Venues: Hall No 922 and 923. Team: 2.',  icon: '🔗', category: 'non-tech' },
-        { id: 'case-study', title: 'Case Study', description: 'Venues: Hall No 925 and 923. Team: 2.',  icon: '📊', category: 'non-tech' },
-
-        // Workshops
-        { id: 'frontend', title: 'Frontend', description: 'Venue: VLSI Lab.',  icon: '🎨', category: 'workshop' },*/
-        { id: 'pcb-assembling', title: 'PC Assembling', description: 'Venue: Microwave Lab.', icon: '🛠️', category: 'workshop' },
-        { id: 'eda-tools', title: 'EDA Tools', description: 'Venue: 3rd Floor Lab.',  icon: '🧩', category: 'workshop' }
-    ];
 
     useEffect(() => {
         if (category && ['tech', 'non-tech', 'workshop'].includes(category)) {
@@ -263,8 +244,6 @@ const EventSelection: React.FC<EventSelectionProps> = ({
             onEventsChange([...selectedEvents, eventId]);
         }
     };
-
-  
 
     return (
         <EventContainer>
@@ -314,18 +293,10 @@ const EventSelection: React.FC<EventSelectionProps> = ({
                         </EventHeader>
 
                         <EventDescription>{event.description}</EventDescription>
-
-                        { <EventDetails>
-                            <EventDuration>{event.duration}</EventDuration>
-                            <EventDifficulty style={{ color: getDifficultyColor(event.difficulty) }}>
-                                {event.difficulty}
-                            </EventDifficulty>
-                        </EventDetails> }
                     </EventCard>
                 ))}
             </EventsGrid>
 
-            {/* Show scanner image for workshop events */}
             {activeTab === 'workshop' && (
                 <ScannerImage 
                     src="/assets/scanner.jpeg" 
@@ -333,7 +304,6 @@ const EventSelection: React.FC<EventSelectionProps> = ({
                 />
             )}
 
-            {/* File upload for workshop events */}
             {activeTab === 'workshop' && onFileUpload && (
                 <FileUpload
                     onFileSelect={onFileUpload}
@@ -353,9 +323,4 @@ const EventSelection: React.FC<EventSelectionProps> = ({
 };
 
 export default EventSelection;
-
-
-
-
-
 

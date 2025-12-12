@@ -126,23 +126,17 @@ const CategorySelection: React.FC<CategorySelectionProps> = ({
         {
             id: 'tech' as const,
             title: 'Technical Events',
-            // description: 'Coding competitions, hackathons, robotics, and cutting-edge technology challenges',
-            icon: '⚡',
-            // eventCount: '25+ Events'
+            icon: '⚡'
         },
         {
             id: 'non-tech' as const,
             title: 'Non-Technical Events',
-            // description: 'Cultural events, management games, quizzes, and creative competitions',
-            icon: '🎨',
-            // eventCount: '15+ Events'
+            icon: '🎨'
         },
         {
             id: 'workshop' as const,
             title: 'Workshops',
-            // description: 'Hands-on learning sessions with industry experts and skill development',
-            icon: '🔧',
-            // eventCount: '10+ Workshops'
+            icon: '🔧'
         }
     ];
 

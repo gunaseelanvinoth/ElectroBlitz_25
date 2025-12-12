@@ -23,8 +23,15 @@ export const useRegistrations = () => {
 export const RegistrationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [registrations, setRegistrations] = useState<FormData[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+    const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
-    // Load registrations from localStorage on mount (for offline support)
+    const persistLocally = (newRegistration: FormData) => {
+        const updatedRegistrations = [...registrations, newRegistration];
+        setRegistrations(updatedRegistrations);
+        localStorage.setItem('electroblitz-registrations', JSON.stringify(updatedRegistrations));
+    };
+
     useEffect(() => {
         const savedRegistrations = localStorage.getItem('electroblitz-registrations');
         if (savedRegistrations) {
@@ -43,7 +50,6 @@ export const RegistrationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             console.log('Starting registration process...');
             console.log('Registration data:', registration);
 
-            // Prepare data for API
             const registrationData = {
                 category: registration.category,
                 first_name: registration.personalInfo.firstName,
@@ -74,38 +80,62 @@ export const RegistrationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
             console.log('Prepared registration data:', registrationData);
 
-            // Insert via Supabase
-            console.log('Inserting data via Supabase...');
-            const { data, error } = await supabase
-                .from('registrations')
-                .insert(registrationData)
-                .select()
-                .single();
+            const shouldAttemptRemote = !!supabaseUrl && !!supabaseKey;
+            if (shouldAttemptRemote) {
+                console.log('Inserting data via Supabase...');
+                const { data, error } = await supabase
+                    .from('registrations')
+                    .insert(registrationData)
+                    .select()
+                    .single();
 
-            if (error) {
-                console.error('Supabase insert error:', error);
-                return { success: false, error: error.message };
+                if (error) {
+                    console.error('Supabase insert error:', error);
+                    const message = error.message || 'Remote save failed';
+                    // Fall back to local persistence so the user can continue
+                    const fallbackRegistration = {
+                        ...registration,
+                        id: crypto.randomUUID(),
+                        registrationDate: new Date().toISOString()
+                    };
+                    persistLocally(fallbackRegistration);
+                    return { success: true, error: `Saved locally only: ${message}` };
+                }
+
+                console.log('Data inserted successfully:', data);
+
+                const newRegistration = {
+                    ...registration,
+                    id: (data as any).id,
+                    registrationDate: (data as any).created_at
+                };
+                
+                persistLocally(newRegistration);
+
+                console.log('Registration completed successfully');
+                return { success: true };
+            } else {
+                console.warn('Supabase credentials missing; saving locally only.');
+                const localOnlyRegistration = {
+                    ...registration,
+                    id: crypto.randomUUID(),
+                    registrationDate: new Date().toISOString()
+                };
+                persistLocally(localOnlyRegistration);
+                return { success: true, error: 'Saved locally (Supabase not configured).' };
             }
-
-            console.log('Data inserted successfully:', data);
-
-            // Add to local state with the returned ID
-            const newRegistration = {
-                ...registration,
-                id: (data as any).id,
-                registrationDate: (data as any).created_at
-            };
-            
-            setRegistrations(prev => [...prev, newRegistration]);
-            
-            // Also save to localStorage for offline support
-            const updatedRegistrations = [...registrations, newRegistration];
-            localStorage.setItem('electroblitz-registrations', JSON.stringify(updatedRegistrations));
-
-            console.log('Registration completed successfully');
-            return { success: true };
         } catch (error) {
             console.error('Registration error:', error);
+            const isFetchError = error instanceof Error && error.message.toLowerCase().includes('failed to fetch');
+            const fallbackRegistration = {
+                ...registration,
+                id: crypto.randomUUID(),
+                registrationDate: new Date().toISOString()
+            };
+            persistLocally(fallbackRegistration);
+            if (isFetchError) {
+                return { success: true, error: 'Saved locally. Network is unreachable.' };
+            }
             return { success: false, error: `Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}` };
         } finally {
             setIsLoading(false);

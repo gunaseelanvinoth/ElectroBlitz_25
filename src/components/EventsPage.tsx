@@ -306,9 +306,6 @@ interface Event {
     id: string;
     title: string;
     description: string;
-    // duration: string;
-    // difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-    // prize: string;
     icon: string;
     category: 'tech' | 'non-tech' | 'workshop';
     rules: string[];
@@ -321,7 +318,6 @@ const EventsPage: React.FC = () => {
         return 'all';
     });
 
-    // Update filter when hash changes to support navigation anchors
     React.useEffect(() => {
         const onHashChange = () => {
             const hash = window.location.hash.replace('#', '');
@@ -333,15 +329,11 @@ const EventsPage: React.FC = () => {
         return () => window.removeEventListener('hashchange', onHashChange);
     }, []);
 
-    const events: Event[] = [
-        // Technical Events
+    const technicalEvents: Event[] = [
         {
             id: 'idea-presentation',
             title: 'Idea Presentation',
             description: 'Present innovative ideas. Venue: Microprocessor Lab. Team of 2 members.',
-            // duration: '—',
-            // difficulty: 'Intermediate',
-            // prize: '—',
             icon: '💡',
             category: 'tech',
             rules: [
@@ -353,9 +345,6 @@ const EventsPage: React.FC = () => {
             id: 'tech-debate',
             title: 'Tech Debate',
             description: 'Debate current tech topics. Venue: Communication Lab.',
-            // duration: '—',
-            // difficulty: 'Intermediate',
-            // prize: '—',
             icon: '🗣️',
             category: 'tech',
             rules: [
@@ -366,9 +355,6 @@ const EventsPage: React.FC = () => {
             id: 'circuit-debugging',
             title: 'Circuit Debugging',
             description: 'Find and fix circuit issues. Venues: Hall No 915, Electronics Lab. Team of 2.',
-            // duration: '—',
-            // difficulty: 'Intermediate',
-            // prize: '—',
             icon: '🔧',
             category: 'tech',
             rules: [
@@ -380,9 +366,6 @@ const EventsPage: React.FC = () => {
             id: 'code-debugging',
             title: 'Code Debugging',
             description: 'Debug code efficiently. Venues: Hall No 914, DSP Lab.',
-            // duration: '—',
-            // difficulty: 'Intermediate',
-            // prize: '—',
             icon: '🐞',
             category: 'tech',
             rules: [
@@ -393,25 +376,20 @@ const EventsPage: React.FC = () => {
             id: 'electrathon',
             title: 'Electrathon',
             description: 'Team challenge in electronics. Venue: Project Corridor. Team of 3-4.',
-            // duration: '—',
-            // difficulty: 'Advanced',
-            // prize: '—',
             icon: '⚡',
             category: 'tech',
             rules: [
                 'Venue: Project Corridor',
                 'Team size: 3 to 4 members'
             ]
-        },
+        }
+    ];
 
-        // Non-Technical Events
+    const nonTechnicalEvents: Event[] = [
         {
             id: 'dugout-deals',
             title: 'The Dugout Deals',
             description: 'Fun team event. Venue: 916 or APJ Hall. Team of 3-4.',
-            // duration: '—',
-            // difficulty: 'Beginner',
-            // prize: '—',
             icon: '🤝',
             category: 'non-tech',
             rules: [
@@ -423,9 +401,6 @@ const EventsPage: React.FC = () => {
             id: 'connections',
             title: 'Connections',
             description: 'Classic connections game. Venues: Hall No 922 and 923. Team of 2.',
-            // duration: '—',
-            // difficulty: 'Beginner',
-            // prize: '—',
             icon: '🔗',
             category: 'non-tech',
             rules: [
@@ -437,38 +412,30 @@ const EventsPage: React.FC = () => {
             id: 'case-study',
             title: 'Case Study',
             description: 'Analyze and present solutions. Venues: Hall No 925 and 923. Team of 2.',
-            // duration: '—',
-            // difficulty: 'Intermediate',
-            // prize: '—',
             icon: '📊',
             category: 'non-tech',
             rules: [
                 'Venues: Hall No 925 and 923',
                 'Team size: 2 members'
             ]
-        },
+        }
+    ];
 
-        // Workshops
+    const workshopEvents: Event[] = [
         {
             id: 'frontend',
             title: 'Frontend',
             description: 'Hands-on frontend session. Venue: VLSI Lab.',
-            // duration: '—',
-            // difficulty: 'Beginner',
-            // prize: 'Certificate',
             icon: '🎨',
             category: 'workshop',
             rules: [
                 'Venue: VLSI Lab'
             ]
         },
-       {
+        {
             id: 'pcb-assembling',
             title: 'PCB Assembling',
             description: 'Assemble and learn PCB basics. Venue: Microwave Lab.',
-            // duration: '—',
-            // difficulty: 'Beginner',
-            // prize: 'Certificate',
             icon: '🛠️',
             category: 'workshop',
             rules: [
@@ -477,31 +444,21 @@ const EventsPage: React.FC = () => {
         },
         {
             id: 'eda-tools',
-           title: 'EDA Tools',
-           description: 'Explore EDA tools. //Venue: 3rd Floor Lab.',
-            // duration: '—',
-            // difficulty: 'Intermediate',
-            // prize: 'Certificate',
+            title: 'EDA Tools',
+            description: 'Explore EDA tools. Venue: 3rd Floor Lab.',
             icon: '🧩',
             category: 'workshop',
-           rules: [
+            rules: [
                 'Venue: 3rd Floor Lab'
             ]
-       }
+        }
     ];
+
+    const events: Event[] = [...technicalEvents, ...nonTechnicalEvents, ...workshopEvents];
 
     const filteredEvents = activeFilter === 'all'
         ? events
         : events.filter(event => event.category === activeFilter);
-
-    // const getDifficultyColor = (difficulty: string) => {
-    //     switch (difficulty) {
-    //         case 'Beginner': return '#00ff88';
-    //         case 'Intermediate': return '#ffaa00';
-    //         case 'Advanced': return '#ff4444';
-    //         default: return '#aaaaaa';
-    //     }
-    // };
 
     return (
         <EventsContainer>
@@ -551,14 +508,6 @@ const EventsPage: React.FC = () => {
                             </EventHeader>
 
                             <EventDescription>{event.description}</EventDescription>
-
-                            { <EventDetails>
-                                <EventDetail type="duration">{event.duration}</EventDetail>
-                                <EventDetail type="difficulty" style={{ color: getDifficultyColor(event.difficulty) }}>
-                                    {event.difficulty}
-                                </EventDetail>
-                                <EventDetail type="prize">{event.prize}</EventDetail>
-                            </EventDetails> }
 
                             <EventRules>
                                 <RulesTitle>Rules & Guidelines</RulesTitle>

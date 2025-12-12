@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { exportToExcel, exportToCSV, exportEventStatistics, exportCategoryToExcel } from '../utils/exportData';
 import { FormData } from './RegistrationPage';
@@ -321,7 +321,6 @@ const LoginError = styled.div`
 `;
 
 
-// Interface for the optimized query result (with only selected columns)
 interface OptimizedRegistration {
     id: string;
     created_at: string;
@@ -354,16 +353,12 @@ const AdminDashboard: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
     const [fetchError, setFetchError] = useState<string>('');
+    const [usedLocalFallback, setUsedLocalFallback] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalCount, setTotalCount] = useState(0);
     const itemsPerPage = 50;
-    const [pageSize, setPageSize] = useState(100); // for manual load more
+    const pageSize = 100;
     const [categoryCounts, setCategoryCounts] = useState<{ tech: number; nonTech: number; workshop: number }>({ tech: 0, nonTech: 0, workshop: 0 });
-
-  useEffect(() => {
-    const authed = typeof window !== 'undefined' && sessionStorage.getItem('eb_admin_authed') === 'true';
-    if (authed) setIsAuthed(true);
-  }, []);
 
   const getExpectedPassword = () => {
     const envPass = process.env.REACT_APP_ADMIN_PASSWORD;
@@ -375,7 +370,6 @@ const AdminDashboard: React.FC = () => {
     setAuthError('');
     if (password === getExpectedPassword()) {
       setIsAuthed(true);
-      sessionStorage.setItem('eb_admin_authed', 'true');
     } else {
       setAuthError('Incorrect password');
     }
@@ -383,7 +377,6 @@ const AdminDashboard: React.FC = () => {
 
   const handleLogout = () => {
     setIsAuthed(false);
-    sessionStorage.removeItem('eb_admin_authed');
   };
 
     const downloadFile = (fileData: { name: string; url: string; type: string }) => {
@@ -395,6 +388,14 @@ const AdminDashboard: React.FC = () => {
         document.body.removeChild(link);
     };
 
+    const persistLocal = (list: FormData[]) => {
+        try {
+            localStorage.setItem('electroblitz-registrations', JSON.stringify(list));
+        } catch (e) {
+            console.warn('Failed to persist locally:', e);
+        }
+    };
+
     const formatFileSize = (bytes: number) => {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -403,16 +404,13 @@ const AdminDashboard: React.FC = () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-    // Helper: fetch registrations in safe batches to avoid timeouts
-    const fetchRegistrationsPaged = async () => {
+    const fetchRegistrationsPaged = useCallback(async () => {
         try {
             setIsFetching(true);
             setFetchError('');
             console.log('Fetching registrations (ultra-simple)...');
-            // Clear search so filtering doesn't hide results during refresh
             setSearchTerm('');
             
-            // Step 1: Test basic connection first
             console.log('Step 1: Testing basic Supabase connection...');
             const { data: testData, error: testError } = await supabase
                 .from('registrations')
@@ -426,7 +424,6 @@ const AdminDashboard: React.FC = () => {
             
             console.log('Basic connection test passed');
             
-            // Step 2: Get basic count (with fallback)
             console.log('Step 2: Getting basic count...');
             let count = 0;
             try {
@@ -436,7 +433,6 @@ const AdminDashboard: React.FC = () => {
                 
                 if (countError) {
                     console.warn('Count query failed, will use alternative method:', countError);
-                    // Fallback: get a small sample to estimate count
                     const { data: sampleData } = await supabase
                         .from('registrations')
                         .select('id')
@@ -448,7 +444,6 @@ const AdminDashboard: React.FC = () => {
                 }
             } catch (countErr) {
                 console.warn('Count query exception, using fallback:', countErr);
-                // Fallback: get a small sample to estimate count
                 const { data: sampleData } = await supabase
                     .from('registrations')
                     .select('id')
@@ -467,7 +462,6 @@ const AdminDashboard: React.FC = () => {
                 return;
             }
             
-            // Step 3: Load data in small batches to avoid timeout
             console.log('Step 3: Loading data in batches...');
             const batchSize = 20;
             const allData: any[] = [];
@@ -492,7 +486,6 @@ const AdminDashboard: React.FC = () => {
                 
                 offset += batchSize;
                 
-                // Small delay to prevent overwhelming the database
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
             
@@ -510,7 +503,6 @@ const AdminDashboard: React.FC = () => {
                 return;
             }
 
-            // Complete conversion with all fields
             const convertedRegistrations: FormData[] = data.map((reg: any) => ({
                 id: reg.id,
                 registrationDate: reg.created_at || reg.registration_date,
@@ -551,7 +543,7 @@ const AdminDashboard: React.FC = () => {
                 nonTech: convertedRegistrations.filter(r => r.category === 'non-tech').length,
                 workshop: convertedRegistrations.filter(r => r.category === 'workshop').length,
             });
-            setFetchError(''); // Clear any previous errors
+            setFetchError('');
         } catch (error) {
             console.error('Error fetching registrations:', error);
             const err: any = error;
@@ -565,12 +557,28 @@ const AdminDashboard: React.FC = () => {
                 msg = 'Unknown error';
             }
             setFetchError(msg);
+            try {
+                const saved = localStorage.getItem('electroblitz-registrations');
+                if (saved) {
+                    const parsed: FormData[] = JSON.parse(saved);
+                    setRegistrations(parsed);
+                    setFilteredRegistrations(parsed);
+                    setTotalCount(parsed.length);
+                    setCategoryCounts({
+                        tech: parsed.filter(r => r.category === 'tech').length,
+                        nonTech: parsed.filter(r => r.category === 'non-tech').length,
+                        workshop: parsed.filter(r => r.category === 'workshop').length
+                    });
+                    setUsedLocalFallback(true);
+                }
+            } catch (e) {
+                console.error('Local fallback failed:', e);
+            }
         } finally {
             setIsFetching(false);
         }
-    };
+    }, []);
 
-    // Helper used by exports: fetch all rows reliably in batches, independent of UI list
     const fetchAllForExport = async (): Promise<FormData[]> => {
         let size = 200;
         const minSize = 25;
@@ -578,7 +586,6 @@ const AdminDashboard: React.FC = () => {
         const merged: OptimizedRegistration[] = [];
         let from = 0;
 
-        // Single query for all rows from Supabase
         const { data, error } = await supabase
             .from('registrations')
             .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
@@ -618,23 +625,18 @@ const AdminDashboard: React.FC = () => {
         }));
     };
 
-    // Load more: append one batch starting from current length
     const loadMoreRegistrations = async () => {
         if (isFetching) return;
         try {
             setIsFetching(true);
             const from = registrations.length;
-            let size = pageSize;
-            const minSize = 10;
+            const { data, error } = await supabase
+                .from('registrations')
+                .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
+                .order('created_at', { ascending: false })
+                .range(from, from + pageSize - 1);
 
-            for (;;) {
-                const { data, error } = await supabase
-                    .from('registrations')
-                    .select('id, created_at, category, first_name, last_name, email, college, academic_year, department, section, selected_events, accommodation_required, uploaded_file_name, uploaded_file_url, uploaded_file_size, uploaded_file_type, team_size, team_members, status')
-                    .order('created_at', { ascending: false })
-                    .range(from, from + size - 1);
-                if (error || !data || data.length === 0) break;
-
+            if (!error && data && data.length > 0) {
                 const appended: FormData[] = data.map((reg: OptimizedRegistration) => ({
                     id: reg.id,
                     registrationDate: reg.created_at,
@@ -667,8 +669,6 @@ const AdminDashboard: React.FC = () => {
                 }));
 
                 setRegistrations(prev => [...prev, ...appended]);
-                if (data.length < size) break; // no more
-                break; // load only one batch per click
             }
         } catch (e) {
             console.error('Load more failed:', e);
@@ -677,13 +677,37 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    // Fetch registrations on mount
+    const handleDeleteRegistration = async (registration: FormData) => {
+        if (!window.confirm('Delete this registration?')) return;
+        const id = registration.id;
+        setIsLoading(true);
+        try {
+            if (id) {
+                const { error } = await supabase
+                    .from('registrations')
+                    .delete()
+                    .eq('id', id);
+                if (error) {
+                    console.error('Delete failed:', error);
+                }
+            }
+            setRegistrations(prev => {
+                const next = prev.filter(r => r.id !== id);
+                persistLocal(next);
+                return next;
+            });
+            setFilteredRegistrations(prev => prev.filter(r => r.id !== id));
+        } catch (e) {
+            console.error('Delete exception:', e);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
         fetchRegistrationsPaged();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [fetchRegistrationsPaged]);
 
-    // Update filtered registrations when registrations or search term changes
     useEffect(() => {
         const filtered = registrations.filter(reg =>
             reg.personalInfo.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -708,7 +732,6 @@ const AdminDashboard: React.FC = () => {
 
     const handleExportEventStats = () => {
         setIsLoading(true);
-        // Mock event data
         const events = [
             { id: 'hackathon', title: '24-Hour Hackathon', category: 'tech', duration: '24 hours', difficulty: 'Advanced', prize: '₹50,000', participants: 150, fee: 'Free' },
             { id: 'coding-contest', title: 'Algorithm Coding Contest', category: 'tech', duration: '3 hours', difficulty: 'Intermediate', prize: '₹25,000', participants: 200, fee: 'Free' },
@@ -760,177 +783,8 @@ const AdminDashboard: React.FC = () => {
                     <Subtitle>Manage ElectroBlitz Registrations</Subtitle>
                 </Header>
 
-        {fetchError && (
-          <div style={{
-            background: 'rgba(255, 68, 68, 0.12)',
-            border: '1px solid rgba(255, 68, 68, 0.35)',
-            color: '#ff8888',
-            padding: '12px 14px',
-            borderRadius: 10,
-            marginBottom: 16
-          }}>
-            ❌ Failed to load registrations: {fetchError}
-          </div>
-        )}
-
-        <div style={{
-          background: 'rgba(0, 212, 255, 0.12)',
-          border: '1px solid rgba(0, 212, 255, 0.35)',
-          color: '#00d4ff',
-          padding: '12px 14px',
-          borderRadius: 10,
-          marginBottom: 16
-        }}>
-          📊 Current Status: {registrations.length} registrations loaded | Total in DB: {totalCount} | Tech: {categoryCounts.tech} | Non-Tech: {categoryCounts.nonTech} | Workshop: {categoryCounts.workshop} | Files: {registrations.filter(r => r.uploadedFile).length}
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <SupabaseTest />
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <button 
-              onClick={async () => {
-                try {
-                  const testData = {
-                    category: 'tech',
-                    first_name: 'Test',
-                    last_name: 'User',
-                    email: `test-${Date.now()}@example.com`,
-                    phone: '1234567890',
-                    college: 'Test College',
-                    academic_year: '2024',
-                    department: 'Computer Science',
-                    section: 'A',
-                    selected_events: ['hackathon'],
-                    dietary_requirements: '',
-                    accommodation_required: false,
-                    emergency_contact: '',
-                    emergency_phone: '',
-                    status: 'pending'
-                  };
-                  const { error } = await supabase.from('registrations').insert([testData]);
-                  if (error) throw error;
-                  alert('Test data inserted successfully!');
-                  fetchRegistrationsPaged();
-                } catch (err) {
-                  alert('Failed to insert test data: ' + (err as any).message);
-                }
-              }}
-              style={{ 
-                background: 'linear-gradient(45deg, #00ff88, #00d4ff)', 
-                color: '#ffffff', 
-                border: 'none', 
-                padding: '0.5rem 1rem', 
-                borderRadius: 8, 
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              ➕ Add Test Data
-            </button>
-            <button 
-              onClick={async () => {
-                try {
-                  console.log('Testing Supabase connection step by step...');
-                  
-                  // Test 1: Basic connection
-                  console.log('Test 1: Basic connection...');
-                  const { data: test1, error: error1 } = await supabase
-                    .from('registrations')
-                    .select('id')
-                    .limit(1);
-                  
-                  if (error1) {
-                    console.error('Test 1 failed:', error1);
-                    alert(`Connection test failed: ${error1.message || JSON.stringify(error1)}`);
-                    return;
-                  }
-                  
-                  console.log('Test 1 passed:', test1);
-                  
-                  // Test 1.5: Check if we can get any data at all
-                  console.log('Test 1.5: Check table access...');
-                  const { data: checkData, error: checkError } = await supabase
-                    .from('registrations')
-                    .select('*')
-                    .limit(1);
-                  
-                  if (checkError) {
-                    console.error('Table access failed:', checkError);
-                    alert(`Table access failed: ${checkError.message || JSON.stringify(checkError)}. The 'registrations' table might not exist. Please run the SQL setup first.`);
-                    return;
-                  }
-                  
-                  console.log('Test 1.5 passed, table exists');
-                  
-                  // Test 2: Count query (skip if table might not exist)
-                  console.log('Test 2: Count query...');
-                  let count = 0;
-                  try {
-                    const { count: countResult, error: error2 } = await supabase
-                      .from('registrations')
-                      .select('*', { count: 'exact', head: true });
-                    
-                    if (error2) {
-                      console.warn('Count query failed (table might not exist):', error2);
-                      count = 0;
-                    } else {
-                      count = countResult || 0;
-                      console.log('Test 2 passed, count:', count);
-                    }
-                  } catch (countErr) {
-                    console.warn('Count query exception:', countErr);
-                    count = 0;
-                  }
-                  
-                  // Test 3: Get some data
-                  console.log('Test 3: Get data...');
-                  const { data: test3, error: error3 } = await supabase
-                    .from('registrations')
-                    .select('*')
-                    .limit(3);
-                  
-                  if (error3) {
-                    console.error('Test 3 failed:', error3);
-                    alert(`Data test failed: ${error3.message || JSON.stringify(error3)}`);
-                    return;
-                  }
-                  
-                  console.log('Test 3 passed, data:', test3);
-                  alert(`All tests passed! Found ${count} total records, showing ${test3?.length || 0} sample records. Check console for details.`);
-                  
-                } catch (err) {
-                  console.error('Test exception:', err);
-                  alert('Test exception: ' + (err as any).message);
-                }
-              }}
-              style={{ 
-                background: 'linear-gradient(45deg, #ffaa00, #ff6600)', 
-                color: '#ffffff', 
-                border: 'none', 
-                padding: '0.5rem 1rem', 
-                borderRadius: 8, 
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              🔍 Debug Connection
-            </button>
-            <button 
-              onClick={() => { fetchRegistrationsPaged(); }} 
-              style={{ 
-                background: 'linear-gradient(45deg, #00d4ff, #ff00ff)', 
-                color: '#ffffff', 
-                border: 'none', 
-                padding: '0.5rem 1rem', 
-                borderRadius: 8, 
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              🔄 Refresh Data
-            </button>
-            <button onClick={handleLogout} style={{ background: 'transparent', color: '#aaaaaa', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 0.9rem', borderRadius: 8, cursor: 'pointer' }}>Logout</button>
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+          <button onClick={handleLogout} style={{ background: 'transparent', color: '#aaaaaa', border: '1px solid rgba(255,255,255,0.2)', padding: '0.5rem 0.9rem', borderRadius: 8, cursor: 'pointer' }}>Logout</button>
         </div>
 
                 <StatsGrid>
@@ -1070,6 +924,7 @@ const AdminDashboard: React.FC = () => {
                                     <TableHeader>Team</TableHeader>
                                     <TableHeader>File</TableHeader>
                                     <TableHeader>Accommodation</TableHeader>
+                                    <TableHeader>Actions</TableHeader>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1136,6 +991,22 @@ const AdminDashboard: React.FC = () => {
                                                 )}
                                             </TableCell>
                                             <TableCell>{registration.additionalInfo.accommodation ? 'Yes' : 'No'}</TableCell>
+                                            <TableCell>
+                                                <button
+                                                    onClick={() => handleDeleteRegistration(registration)}
+                                                    style={{
+                                                        background: 'transparent',
+                                                        color: '#ff7777',
+                                                        border: '1px solid rgba(255,119,119,0.6)',
+                                                        padding: '0.3rem 0.6rem',
+                                                        borderRadius: 6,
+                                                        cursor: 'pointer',
+                                                        fontWeight: 600
+                                                    }}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 )}

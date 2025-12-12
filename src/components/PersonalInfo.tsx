@@ -226,9 +226,6 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ data, onUpdate, category = 
         '2nd Year',
         '3rd Year',
         '4th Year',
-        // '5th Year (Dual Degree)',
-        // 'Post Graduate',
-        // 'Other'
     ];
 
     const departmentOptions = [

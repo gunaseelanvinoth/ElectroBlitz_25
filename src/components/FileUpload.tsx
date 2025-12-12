@@ -161,7 +161,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, selectedFile, err
     };
 
     const handleFileSelect = (file: File) => {
-        // Validate file type
         const allowedTypes = [
             'application/pdf',
             'application/msword',
@@ -179,9 +178,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, selectedFile, err
             return;
         }
 
-        // Validate file size (max 10MB)
-        const maxSize = 10 * 1024 * 1024; // 10MB
-        if (file.size > maxSize) {
+        const maxSizeBytes = 10 * 1024 * 1024;
+        if (file.size > maxSizeBytes) {
             onFileSelect(null);
             return;
         }
