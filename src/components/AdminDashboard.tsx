@@ -3,7 +3,6 @@ import styled, { keyframes } from 'styled-components';
 import { exportToExcel, exportToCSV, exportEventStatistics, exportCategoryToExcel } from '../utils/exportData';
 import { FormData } from './RegistrationPage';
 import { supabase } from '../utils/supabase';
-import SupabaseTest from './SupabaseTest';
 
 const fadeInUp = keyframes`
   from {
